@@ -6,7 +6,7 @@ import sys
 from typing import Any
 
 from .config import MultiAIConfig
-from .pipeline import run_multiai
+from .pipeline import run_multiai, run_multiai_stream
 
 
 def _draft_to_dict(d: Any) -> dict[str, Any]:
@@ -30,6 +30,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-log", action="store_true", help="Run-Logging deaktivieren.")
     parser.add_argument("--log-dir", help="Verzeichnis fuer Run-Logs.")
     parser.add_argument("--json", action="store_true", help="Result als JSON ausgeben.")
+    parser.add_argument("--stream", action="store_true", help="Synthesizer-Antwort live streamen.")
 
     args = parser.parse_args(argv)
 
@@ -50,6 +51,12 @@ def main(argv: list[str] | None = None) -> int:
     config = MultiAIConfig.from_dict(overrides)
 
     try:
+        if args.stream and not args.json:
+            # Streaming-Modus: Synthesizer-Antwort chunkweise ausgeben
+            for chunk in run_multiai_stream(args.question, config=config):
+                print(chunk, end="", flush=True)
+            print()  # final newline
+            return 0
         result = run_multiai(args.question, config=config)
     except Exception as e:
         print(f"Fehler: {e}", file=sys.stderr)

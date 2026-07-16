@@ -8,7 +8,7 @@ description: >
   Fragen, wo die kollektive Staerke mehrerer Modelle gewuenscht ist.
 user-invocable: true
 argument-hint: <frage> [--strategy moa|concat] [--show-drafts]
-version: 0.1.0
+version: 0.2.0
 author: AKINO
 license: MIT
 metadata:
@@ -37,7 +37,7 @@ Antworten zu EINER hochwertigen Antwort synthetisieren.
 Bevor die Engine startet, IMMER zuerst ausfuehren:
 
 ```bash
-cd "E:/Dateien/Hermes Projects/skill-multiai" && python -m multiai.modelcheck
+cd ~/.hermes/skills/multi-ai-skill && python -m multiai.modelcheck
 ```
 
 - Output `Fallback-Check nicht faellig` -> ignorieren, normal weitermachen
@@ -47,7 +47,7 @@ cd "E:/Dateien/Hermes Projects/skill-multiai" && python -m multiai.modelcheck
 ## Ausfuehrung
 
 ```bash
-cd "E:/Dateien/Hermes Projects/skill-multiai" && python -m multiai "<FRAGE>"
+cd ~/.hermes/skills/multi-ai-skill && python -m multiai "<FRAGE>"
 ```
 
 Die finale, synthetisierte Antwort kommt auf stdout — an User weitergeben.
@@ -57,6 +57,13 @@ Die finale, synthetisierte Antwort kommt auf stdout — an User weitergeben.
 - Nur sammeln statt synthetisieren: `--strategy concat`
 - Modelle ueberschreiben: `--models modell-a,modell-b --lead aggregator`
 - Maschinenlesbar: `--json`
+- **Live-Streaming:** `--stream` — synthetisierte Antwort erscheint Wort fuer Wort
+  (Worker laufen weiterhin parallel; nur die Synthese wird gestreamt)
+  ```bash
+  cd ~/.hermes/skills/multi-ai-skill && python -m multiai "<FRAGE>" --stream
+  ```
+  Reduziert wahrgenommene Latenz drastisch. Siehe `references/streaming.md`
+  fuer Details zur Implementierung (SSE-Parsing, Thinking-Model-Retry).
 
 ## Verhalten / Robustheit
 - Worker-Timeout/Fehler -> wird uebersprungen, andere laufen weiter
@@ -66,4 +73,4 @@ Die finale, synthetisierte Antwort kommt auf stdout — an User weitergeben.
 ## Voraussetzungen
 - `OLLAMA_API_KEY` in `~/.env` (Format: `OLLAMA_API_KEY=dein-key`)
 - Python >= 3.10, nur Stdlib (kein pip zur Laufzeit)
-- Projektpfad: `E:\Dateien\Hermes Projects\skill-multiai\`
+- Projektpfad: `~/.hermes/skills/multi-ai-skill/`

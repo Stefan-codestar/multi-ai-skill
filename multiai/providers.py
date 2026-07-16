@@ -69,6 +69,148 @@ class OllamaCloudProvider:
     def _extra_headers(self) -> dict[str, str]:
         return {}
 
+    def stream_complete(
+        self,
+        model: str,
+        messages: list[dict[str, str]],
+        *,
+        temperature: float = 0.7,
+        max_tokens: int = 16384,
+        timeout: float = 120,
+        extra_body: dict[str, Any] | None = None,
+        thinking_retry_cap: int = 65536,
+    ):
+        """Streamt einen Chat-Completion-Request via SSE und yieldt Content-Deltas.
+
+        Yieldt str-Chunks mit den jeweiligen Content-Deltas.
+        Bei HTTP 400 mit extra_body wird automatisch ohne extra_body erneut versucht
+        (z.B. reasoning_effort wird beim Streaming-Endpoint nicht unterstuetzt).
+
+        Thinking-Model-Retry: Wenn die ersten chunks nur reasoning aber keinen
+        content enthalten und der Stream mit finish_reason='stop' endet ohne
+        jemals content geliefert zu haben, wird mit 4x max_tokens erneut versucht
+        (analog zu complete()).
+        """
+        current_max_tokens = max_tokens
+
+        while True:
+            content_chunks: list[str] = []
+            had_reasoning = False
+            got_content = False
+
+            for chunk in self._raw_stream(
+                model, messages,
+                temperature=temperature,
+                max_tokens=current_max_tokens,
+                timeout=timeout,
+                extra_body=extra_body,
+            ):
+                delta_content = chunk.get("content")
+                delta_reasoning = chunk.get("reasoning") or chunk.get("reasoning_content")
+                if delta_reasoning:
+                    had_reasoning = True
+                if delta_content:
+                    got_content = True
+                    content_chunks.append(delta_content)
+                    yield delta_content
+
+            if got_content:
+                return
+
+            # Kein Content, aber Reasoning vorhanden -> Thinking-Model Budget-Problem
+            if had_reasoning and current_max_tokens < thinking_retry_cap:
+                current_max_tokens = min(current_max_tokens * 4, thinking_retry_cap)
+                continue
+
+            # Weder Content noch Reasoning -> leerer Stream, nichts zu tun
+            return
+
+    def _raw_stream(
+        self,
+        model: str,
+        messages: list[dict[str, str]],
+        *,
+        temperature: float = 0.7,
+        max_tokens: int = 16384,
+        timeout: float = 120,
+        extra_body: dict[str, Any] | None = None,
+    ):
+        """Low-Level SSE-Stream. Yieldt rohe delta-dicts (nicht nur content).
+
+        Behandelt HTTP 400 mit extra_body Fallback (wie complete()).
+        """
+        url = f"{self.base_url}/chat/completions"
+        payload: dict[str, Any] = {
+            "model": model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "stream": True,
+        }
+        if extra_body:
+            payload.update(extra_body)
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "Accept": "text/event-stream",
+        }
+        headers.update(self._extra_headers())
+
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+
+        try:
+            resp = urllib.request.urlopen(req, timeout=timeout)
+        except urllib.error.HTTPError as e:
+            if e.code == 400 and extra_body:
+                # Retry ohne extra_body (reasoning_effort etc. nicht unterstuetzt)
+                payload = {k: v for k, v in payload.items() if k not in extra_body}
+                data = json.dumps(payload).encode("utf-8")
+                req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+                try:
+                    resp = urllib.request.urlopen(req, timeout=timeout)
+                except urllib.error.HTTPError as e2:
+                    raise ProviderError(
+                        model,
+                        f"HTTP {e2.code}: {e2.reason}",
+                        status=e2.code,
+                        transient=e2.code in TRANSIENT_HTTP,
+                    ) from e2
+            else:
+                raise ProviderError(
+                    model,
+                    f"HTTP {e.code}: {e.reason}",
+                    status=e.code,
+                    transient=e.code in TRANSIENT_HTTP,
+                ) from e
+        except urllib.error.URLError as e:
+            raise ProviderError(model, f"URL-Fehler: {e.reason}", transient=True) from e
+        except TimeoutError as e:
+            raise ProviderError(model, "Timeout", transient=True) from e
+
+        try:
+            for raw_line in resp:
+                line = raw_line.decode("utf-8", errors="replace").strip()
+                if not line or line.startswith(":"):
+                    continue
+                if not line.startswith("data:"):
+                    continue
+                data_str = line[len("data:"):].strip()
+                if data_str == "[DONE]":
+                    break
+                try:
+                    chunk = json.loads(data_str)
+                except json.JSONDecodeError:
+                    continue
+                try:
+                    delta = chunk["choices"][0]["delta"]
+                    yield delta
+                except (KeyError, IndexError, TypeError):
+                    continue
+        finally:
+            resp.close()
+
     def complete(
         self,
         model: str,
@@ -217,6 +359,10 @@ class RoutingProvider:
 
     def complete(self, model: str, messages: list[dict[str, str]], **kwargs) -> str:
         return self._ollama.complete(model, messages, **kwargs)
+
+    def stream_complete(self, model: str, messages: list[dict[str, str]], **kwargs):
+        """Streamt Content-Deltas vom underlying Ollama-Provider."""
+        yield from self._ollama.stream_complete(model, messages, **kwargs)
 
 
 def _load_ollama_key() -> str:

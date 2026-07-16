@@ -4,7 +4,7 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
-from .aggregate import concat_drafts, synthesize
+from .aggregate import concat_drafts, synthesize, synthesize_stream
 from .config import MultiAIConfig
 from .fanout import Draft, fan_out
 from .logio import log_run
@@ -129,3 +129,81 @@ def run_multiai(
         used_quorum=used_quorum,
         n_ok=n_ok,
     )
+
+
+def run_multiai_stream(
+    question: str,
+    config: MultiAIConfig | None = None,
+    provider: Any | None = None,
+):
+    """Wie run_multiai, aber streamt die Synthesizer-Antwort chunkweise.
+
+    Yieldt str-Chunks mit Content-Deltas vom Synthesizer.
+    Die Worker-Phase bleibt parallel (unchanged) — nur die Synthese wird gestreamt.
+
+    Am Ende wird ein Run-Log geschrieben (best-effort).
+    """
+    import sys
+
+    config = config or MultiAIConfig()
+    if provider is None:
+        provider = RoutingProvider(ollama_base_url=config.base_url)
+
+    t0 = time.time()
+    messages = [{"role": "user", "content": question}]
+
+    # Worker parallel (wie gehabt)
+    drafts = fan_out(
+        provider,
+        messages,
+        config.worker_models,
+        timeout=config.timeout_s,
+        max_tokens=config.worker_max_tokens,
+        temperature=config.worker_temperature,
+        extra_body=config.worker_extra_body,
+    )
+    n_ok = sum(1 for d in drafts if d.ok)
+    aggregator_model = config.aggregator_model
+    strategy = config.strategy
+
+    if strategy == "concat":
+        final = concat_drafts(drafts)
+        yield final
+        used_quorum = False
+    elif strategy == "moa":
+        if n_ok >= 1:
+            final_parts: list[str] = []
+            for chunk in synthesize_stream(
+                provider, question, drafts,
+                aggregator_model=aggregator_model,
+                max_tokens=config.aggregator_max_tokens,
+                temperature=config.aggregator_temperature,
+                extra_body=config.aggregator_extra_body,
+            ):
+                final_parts.append(chunk)
+                yield chunk
+            final = "".join(final_parts)
+            used_quorum = n_ok < config.quorum_k
+        else:
+            final = provider.complete(
+                aggregator_model,
+                messages,
+                temperature=config.aggregator_temperature,
+                max_tokens=config.aggregator_max_tokens,
+                extra_body=config.aggregator_extra_body,
+            )
+            yield final
+            used_quorum = True
+    else:
+        raise ValueError(f"Unbekannte Strategie: {strategy}")
+
+    total_s = time.time() - t0
+
+    if config.enable_logging:
+        try:
+            log_run(
+                _build_record(question, drafts, final, strategy, aggregator_model, n_ok, total_s),
+                config.log_dir,
+            )
+        except Exception:
+            pass

@@ -50,3 +50,34 @@ def synthesize(
         max_tokens=max_tokens,
         extra_body=extra_body,
     )
+
+
+def synthesize_stream(
+    provider,
+    question: str,
+    drafts: list,
+    *,
+    aggregator_model: str = "glm-5.2",
+    max_tokens: int = 8192,
+    temperature: float = 0.3,
+    extra_body: dict[str, Any] | None = None,
+):
+    """Wie synthesize(), aber streamt die Synthesizer-Antwort chunkweise.
+
+    Yieldt str-Chunks mit Content-Deltas. Der Caller ist fuer die Ausgabe
+    verantwortlich (z.B. print(chunk, end='', flush=True)).
+    """
+    ok_drafts = [d for d in drafts if d.ok]
+    numbered_responses = "\n".join(f"{i + 1}. {d.content}" for i, d in enumerate(ok_drafts))
+    system_content = AGGREGATOR_SYSTEM_PROMPT + "\n\n" + numbered_responses
+    messages = [
+        {"role": "system", "content": system_content},
+        {"role": "user", "content": question},
+    ]
+    yield from provider.stream_complete(
+        aggregator_model,
+        messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        extra_body=extra_body,
+    )

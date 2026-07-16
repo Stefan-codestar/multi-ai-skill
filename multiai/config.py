@@ -7,9 +7,9 @@ from typing import Any
 # ── Dein Setup: Ollama Cloud Pro, 3 Worker ─────────────────────────────────
 DEFAULT_AGGREGATOR_MODEL = "glm-5.2"
 DEFAULT_WORKER_MODELS = [
-    "deepseek-v4-pro",   # DeepSeek — bestes Reasoning, Level 4
-    "qwen3.5:397b",      # Qwen — 397B Parameter, General/Creative
-    "glm-5.2",           # Z.ai — Flaggschiff, auch als Aggregator
+    "deepseek-v4-pro",       # DeepSeek — bestes Reasoning, Level 4
+    "nemotron-3-ultra",      # NVIDIA — US-Perspektive, General Knowledge
+    "mistral-large-3:675b",  # Mistral — 675B, europäische Perspektive, kreativ
 ]
 DEFAULT_WORKER_EXTRA_BODY    = {"reasoning_effort": "xhigh"}
 DEFAULT_BASE_URL             = "https://ollama.com/v1"

@@ -8,8 +8,8 @@ def test_defaults():
     assert c.aggregator_model == "glm-5.2"
     assert c.worker_models == [
         "deepseek-v4-pro",
-        "qwen3.5:397b",
-        "glm-5.2",
+        "nemotron-3-ultra",
+        "mistral-large-3:675b",
     ]
     assert c.base_url == "https://ollama.com/v1"
     assert c.timeout_s == 240

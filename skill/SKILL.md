@@ -23,7 +23,7 @@ Antworten zu EINER hochwertigen Antwort synthetisieren.
 
 - **Lead/Aggregator:** `glm-5.2` (Z.ai Flaggschiff, liest alle 3 Entwuerfe)
 - **Worker (3, parallel, Ollama Cloud Pro, `reasoning_effort: xhigh`):**
-  `deepseek-v4-pro` (DeepSeek), `qwen3.5:397b` (Qwen), `glm-5.2` (Z.ai)
+  `deepseek-v4-pro` (DeepSeek), `nemotron-3-ultra` (NVIDIA), `mistral-large-3:675b` (Mistral)
 - **Provider:** Ollama Cloud Pro — im Plan-Kontingent enthalten
 
 ## Wann verwenden

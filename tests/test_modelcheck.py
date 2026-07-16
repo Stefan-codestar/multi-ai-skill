@@ -62,7 +62,7 @@ def test_run_check_first_run(tmp_path, monkeypatch):
     state_path = str(tmp_path / "state.json")
     today = datetime.date(2026, 7, 14)
 
-    workers = ["deepseek-v4-pro", "qwen3.5:397b", "glm-5.2"]
+    workers = ["deepseek-v4-pro", "nemotron-3-ultra", "mistral-large-3:675b"]
     monkeypatch.setattr("multiai.modelcheck.DEFAULT_WORKER_MODELS", workers)
     monkeypatch.setattr("multiai.modelcheck.fetch_ollama_models", lambda: set(workers))
 

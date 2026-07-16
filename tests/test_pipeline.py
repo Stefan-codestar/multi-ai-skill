@@ -40,8 +40,8 @@ def test_pipeline_all_ok_moa():
     provider = FakeProvider(
         responses={
             "deepseek-v4-pro": "D",
-            "qwen3.5:397b": "Q",
-            "glm-5.2": "G",
+            "nemotron-3-ultra": "N",
+            "mistral-large-3:675b": "M",
         },
         synth="SYNTH",
     )
@@ -50,15 +50,15 @@ def test_pipeline_all_ok_moa():
     assert result.strategy == "moa"
     assert result.used_quorum is False
     assert result.final == "SYNTH"
-    # glm-5.2 laeuft als Worker UND als Aggregator -> 2 Calls
+    # glm-5.2 laeuft nur als Aggregator (nicht mehr als Worker) -> 1 Call
     glm_calls = [c for c in provider.calls if c[0] == "glm-5.2"]
-    assert len(glm_calls) == 2
+    assert len(glm_calls) == 1
 
 
 def test_pipeline_degradation_one_ok():
     provider = FakeProvider(
-        responses={"glm-5.2": "G"},
-        fail={"deepseek-v4-pro", "qwen3.5:397b"},
+        responses={"mistral-large-3:675b": "M"},
+        fail={"deepseek-v4-pro", "nemotron-3-ultra"},
         synth="SYNTH",
     )
     result = run_multiai("Frage?", config=_cfg(), provider=provider)
@@ -71,9 +71,9 @@ def test_pipeline_lead_fallback_zero_ok():
     # Alle Worker scheitern -> Lead antwortet allein
     provider = FakeProvider(
         responses={"glm-5.2": "Lead-Allein"},
-        fail={"deepseek-v4-pro", "qwen3.5:397b"},
+        fail={"deepseek-v4-pro", "nemotron-3-ultra"},
     )
-    cfg = _cfg(worker_models=["deepseek-v4-pro", "qwen3.5:397b"])
+    cfg = _cfg(worker_models=["deepseek-v4-pro", "nemotron-3-ultra"])
     result = run_multiai("Frage?", config=cfg, provider=provider)
     assert result.n_ok == 0
     assert result.used_quorum is True
@@ -83,7 +83,7 @@ def test_pipeline_lead_fallback_zero_ok():
 def test_pipeline_total_failure_raises():
     provider = FakeProvider(
         responses={},
-        fail={"deepseek-v4-pro", "qwen3.5:397b", "glm-5.2"},
+        fail={"deepseek-v4-pro", "nemotron-3-ultra", "mistral-large-3:675b", "glm-5.2"},
     )
     with pytest.raises(Exception):
         run_multiai("Frage?", config=_cfg(), provider=provider)
@@ -93,8 +93,8 @@ def test_pipeline_concat():
     provider = FakeProvider(
         responses={
             "deepseek-v4-pro": "D",
-            "qwen3.5:397b": "Q",
-            "glm-5.2": "G",
+            "nemotron-3-ultra": "N",
+            "mistral-large-3:675b": "M",
         }
     )
     result = run_multiai("Frage?", config=_cfg(strategy="concat"), provider=provider)
@@ -102,16 +102,16 @@ def test_pipeline_concat():
     assert result.used_quorum is False
     # Concat-Output enthaelt alle drei Worker-Antworten
     assert "D" in result.final
-    assert "Q" in result.final
-    assert "G" in result.final
+    assert "N" in result.final
+    assert "M" in result.final
 
 
 def test_pipeline_passes_worker_extra_body():
     provider = FakeProvider(
         responses={
             "deepseek-v4-pro": "D",
-            "qwen3.5:397b": "Q",
-            "glm-5.2": "G",
+            "nemotron-3-ultra": "N",
+            "mistral-large-3:675b": "M",
         },
         synth="SYNTH",
     )

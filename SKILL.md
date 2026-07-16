@@ -2,10 +2,11 @@
 name: multiai
 description: >
   Beantwortet eine Frage mit 3 KI-Modellen gleichzeitig (Mixture-of-Agents) auf
-  Ollama Cloud Pro und synthetisiert EINE bessere Antwort. Verwende diesen Skill,
-  wenn "/multiai", "frag mehrere Modelle", "Multi-AI", "MoA", "mehrere KIs" oder
-  "zweite Meinung von anderen Modellen" gesagt wird, oder bei schwierigen/wichtigen
-  Fragen, wo die kollektive Staerke mehrerer Modelle gewuenscht ist.
+  Ollama Cloud Pro und synthetisiert EINE bessere Antwort. Verwende diesen Skill
+  AUTOMATISCH bei schwierigen, wichtigen oder mehrdeutigen Fragen, wo die
+  kollektive Staerke mehrerer Modelle gewuenscht ist — auch ohne expliziten
+  Befehl. Bei explizitem "/multiai", "frag mehrere Modelle", "Multi-AI", "MoA",
+  "mehrere KIs" oder "zweite Meinung von anderen Modellen" immer verwenden.
 user-invocable: true
 argument-hint: <frage> [--strategy moa|concat] [--show-drafts] [--stream]
 version: 0.2.0
@@ -26,11 +27,41 @@ Antworten zu EINER hochwertigen Antwort synthetisieren.
   `deepseek-v4-pro` (DeepSeek), `nemotron-3-ultra` (NVIDIA), `mistral-large-3:675b` (Mistral)
 - **Provider:** Ollama Cloud Pro — im Plan-Kontingent enthalten
 
-## Wann verwenden
-- Bei schwierigen, wichtigen oder mehrdeutigen Fragen
-- Wenn explizit `/multiai`, "frag mehrere Modelle", "zweite Meinung", "MoA" gesagt wird
-- NICHT fuer triviale Fragen (ein Modell reicht — spart Kontingent und Zeit)
-- Latenz-Erwartung: ~1–3 Minuten (3 Worker mit xhigh-Reasoning parallel + Synthese)
+## Wann AUTOMATISCH verwenden (ohne expliziten Befehl)
+
+Setze diesen Skill eigenstaendig ein, wenn DIESE Kriterien erfuellt sind:
+
+- **Komplexe technische Fragen** — Architektur-Entscheidungen, Trade-offs,
+  "welcher Ansatz ist besser fuer X", Multi-Step-Reasoning
+- **Mehrdeutige oder umstrittene Themen** — bei denen verschiedene Modelle
+  unterschiedliche Perspektiven bieten koennten (China/US/Europa)
+- **Wichtige Entscheidungen** — mit dauerhaften Konsequenzen (Infrastruktur,
+  Sicherheit, Kosten, Design-Architektur)
+- **Fragen mit mehreren gueltigen Antworten** — bei denen die Synthese
+  verschiedener Meinungen einen echten Mehrwert bietet
+- **Tiefe Analyse / Erklaerungen** — bei denen umfassendes Reasoning
+  mehrerer Modelle qualitativ besser ist als eine Einzelantwort
+
+## Wann explizit verwenden (User-Befehl)
+
+Immer, wenn der User sagt: `/multiai`, "frag mehrere Modelle", "Multi-AI",
+"MoA", "mehrere KIs", "zweite Meinung von anderen Modellen"
+
+## Wann NICHT verwenden
+
+- Triviale Fragen (z.B. "wie heisst die Hauptstadt von Frankreich")
+- Einfache Lookups, Definitionen, Faktenwissen
+- Code-Schreiben / Datei-Edits / Ausfuehren von Befehlen — da ist ein
+  einzelnes Modell schneller und ausreichend
+- Wenn Geschwindigkeit wichtiger als maximale Qualitaet ist
+- Bei Follow-Up-Fragen in einer laufenden Konversation, die sich auf
+  Kontext beziehen, den nur das aktuelle Modell hat
+
+## Latenz-Erwartung
+
+~1–3 Minuten (3 Worker mit xhigh-Reasoning parallel + Synthese).
+Den User bei automatischem Einsatz KURZ informieren:
+"Diese Frage ist komplex genug fuer eine Multi-Modell-Synthese — das dauert ~1-3 Min."
 
 ## Woechentlicher Fallback-Check (PFLICHT bei jedem Einsatz)
 
@@ -53,6 +84,7 @@ cd ~/.hermes/skills/multi-ai-skill && python -m multiai "<FRAGE>"
 Die finale, synthetisierte Antwort kommt auf stdout — an User weitergeben.
 
 ### Optionen
+
 - Einzelantworten zeigen: `--show-drafts`
 - Nur sammeln statt synthetisieren: `--strategy concat`
 - Modelle ueberschreiben: `--models modell-a,modell-b --lead aggregator`
@@ -66,15 +98,18 @@ Die finale, synthetisierte Antwort kommt auf stdout — an User weitergeben.
   fuer Details zur Implementierung (SSE-Parsing, Thinking-Model-Retry).
 
 ## Verhalten / Robustheit
+
 - Worker-Timeout/Fehler -> wird uebersprungen, andere laufen weiter
 - >=2 OK -> normale MoA-Synthese; 1 -> Degradationsmodus; 0 -> Aggregator antwortet allein
 - Es gibt immer eine Antwort
 
 ## Voraussetzungen
+
 - `OLLAMA_API_KEY` in `~/.env` (Format: `OLLAMA_API_KEY=dein-key`)
 - Python >= 3.10, nur Stdlib (kein pip zur Laufzeit)
 - Projektpfad: `~/.hermes/skills/multi-ai-skill/`
 
 ## Installation / Update auf VPS
+
 - Siehe `references/vps-github-deployment.md` fuer Anleitung zum Klonen, Pushen
   und Loesen von Auth-Problemen (SSH-Deploy-Keys, Security-Scanner, Git-Identity).

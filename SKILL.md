@@ -7,7 +7,7 @@ description: >
   "zweite Meinung von anderen Modellen" gesagt wird, oder bei schwierigen/wichtigen
   Fragen, wo die kollektive Staerke mehrerer Modelle gewuenscht ist.
 user-invocable: true
-argument-hint: <frage> [--strategy moa|concat] [--show-drafts]
+argument-hint: <frage> [--strategy moa|concat] [--show-drafts] [--stream]
 version: 0.2.0
 author: AKINO
 license: MIT
@@ -74,3 +74,7 @@ Die finale, synthetisierte Antwort kommt auf stdout — an User weitergeben.
 - `OLLAMA_API_KEY` in `~/.env` (Format: `OLLAMA_API_KEY=dein-key`)
 - Python >= 3.10, nur Stdlib (kein pip zur Laufzeit)
 - Projektpfad: `~/.hermes/skills/multi-ai-skill/`
+
+## Installation / Update auf VPS
+- Siehe `references/vps-github-deployment.md` fuer Anleitung zum Klonen, Pushen
+  und Loesen von Auth-Problemen (SSH-Deploy-Keys, Security-Scanner, Git-Identity).

@@ -162,44 +162,28 @@ class _FakeProvider:
         return self.resp
 
 
-def test_bare_name_fallback_to_clinepass():
-    """Bare name: Ollama scheitert -> ClinePass wird versucht."""
-    ollama = _FakeProvider(fail=True)
-    cline = _FakeProvider(fail=False, resp="ClinePass OK")
-
-    router = RoutingProvider(ollama=ollama, cline=cline)
+def test_routing_provider_delegates_to_ollama():
+    """RoutingProvider leitet direkt an Ollama Cloud weiter."""
+    ollama = _FakeProvider(fail=False, resp="Ollama OK")
+    router = RoutingProvider(ollama=ollama)
     result = router.complete("glm-5.2", [{"role": "user", "content": "Hi"}])
-
-    assert result == "ClinePass OK"
+    assert result == "Ollama OK"
     assert ollama.calls == ["glm-5.2"]
-    assert cline.calls == ["cline-pass/glm-5.2"]
 
 
-def test_bare_name_fallback_to_openrouter():
-    """Bare name: Ollama und ClinePass scheitern -> OpenRouter falls Mapping."""
+def test_routing_provider_raises_on_ollama_error():
+    """RoutingProvider wirft ProviderError wenn Ollama scheitert (kein Fallback)."""
     ollama = _FakeProvider(fail=True)
-    cline = _FakeProvider(fail=True)
-    openrouter = _FakeProvider(fail=False, resp="OpenRouter OK")
-
-    router = RoutingProvider(ollama=ollama, cline=cline, openrouter=openrouter)
-    result = router.complete("glm-5.2", [{"role": "user", "content": "Hi"}])
-
-    assert result == "OpenRouter OK"
-    assert ollama.calls == ["glm-5.2"]
-    assert cline.calls == ["cline-pass/glm-5.2"]
-    assert openrouter.calls == ["z-ai/glm-5.2"]
+    router = RoutingProvider(ollama=ollama)
+    with pytest.raises(ProviderError):
+        router.complete("glm-5.2", [{"role": "user", "content": "Hi"}])
 
 
-def test_bare_name_no_fallback_available():
-    """Bare name: Ollama scheitert, kein ClinePass/OpenRouter-Mapping -> ProviderError."""
-    ollama = _FakeProvider(fail=True)
-    cline = _FakeProvider(fail=False, resp="ClinePass OK")
-    openrouter = _FakeProvider(fail=False, resp="OpenRouter OK")
+def test_routing_provider_ignores_extra_kwargs():
+    """RoutingProvider akzeptiert unbekannte kwargs (Rueckwaertskompatibilitaet)."""
+    ollama = _FakeProvider(fail=False, resp="OK")
+    # openrouter= und cline= aus altem Code werden per **_ignored ignoriert
+    router = RoutingProvider(ollama=ollama, openrouter=None, cline=None)
+    result = router.complete("deepseek-v4-pro", [{"role": "user", "content": "Hi"}])
+    assert result == "OK"
 
-    router = RoutingProvider(ollama=ollama, cline=cline, openrouter=openrouter)
-    with pytest.raises(ProviderError) as ei:
-        router.complete("nemotron-3-ultra", [{"role": "user", "content": "Hi"}])
-    assert "fehlgeschlagen" in str(ei.value)
-    assert ollama.calls == ["nemotron-3-ultra"]
-    assert cline.calls == []
-    assert openrouter.calls == []

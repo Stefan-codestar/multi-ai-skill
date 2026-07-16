@@ -8,7 +8,7 @@ import sys
 import urllib.request
 
 from .config import DEFAULT_WORKER_MODELS
-from .providers import CLINE_PASS_MODELS, _CLINEPASS_TO_OPENROUTER, _load_key
+from .providers import _load_key
 
 
 STATE_PATH_DEFAULT = os.path.expanduser("~/.multiai/fallback_check.json")
@@ -71,13 +71,8 @@ def _save_state(path: str, state: dict) -> None:
 
 
 def _compute_fallback_gaps() -> list[str]:
-    """Worker ohne ClinePass- und ohne OpenRouter-Fallback (sortiert)."""
-    gaps = []
-    for worker in DEFAULT_WORKER_MODELS:
-        cline_name = f"cline-pass/{worker}"
-        if cline_name not in CLINE_PASS_MODELS and cline_name not in _CLINEPASS_TO_OPENROUTER:
-            gaps.append(worker)
-    return sorted(gaps)
+    """Gibt immer eine leere Liste zurueck — kein Fallback-Tier konfiguriert (Ollama Cloud only)."""
+    return []
 
 
 def run_check(
@@ -103,18 +98,12 @@ def run_check(
 
     # --- Fetches ---
     ollama_models: set[str] | None = None
-    openrouter_models: set[str] | None = None
     fetch_errors: list[str] = []
 
     try:
         ollama_models = fetch_ollama_models()
     except Exception as e:
         fetch_errors.append(f"Ollama-Katalog: {e}")
-
-    try:
-        openrouter_models = fetch_openrouter_models()
-    except Exception as e:
-        fetch_errors.append(f"OpenRouter: {e}")
 
     if fetch_errors:
         lines = ["AENDERUNGEN GEFUNDEN"]
@@ -124,7 +113,6 @@ def run_check(
         return (True, "\n".join(lines))
 
     assert ollama_models is not None
-    assert openrouter_models is not None
 
     report_lines: list[str] = []
     has_changes = False
@@ -145,46 +133,11 @@ def run_check(
             has_changes = True
             report_lines.append(f"- {m}")
 
-    # b) Worker-Verfuegbarkeit
+    # b) Worker-Verfuegbarkeit im Ollama-Katalog
     for worker in DEFAULT_WORKER_MODELS:
         if worker not in ollama_models:
             has_changes = True
             report_lines.append(f"WARNUNG: Worker '{worker}' nicht im Ollama-Katalog.")
-
-    # c) OpenRouter-Mappings
-    mapped_ok_now = [
-        t for t in _CLINEPASS_TO_OPENROUTER.values() if t in openrouter_models
-    ]
-    mapped_dead_now = [
-        t for t in _CLINEPASS_TO_OPENROUTER.values() if t not in openrouter_models
-    ]
-    now_ok = set(mapped_ok_now)
-
-    prev_ok = set(state.get("openrouter_mapped_ok", [])) if state else None
-    newly_dead = (prev_ok - now_ok) if prev_ok is not None else set()
-    revived = (now_ok - prev_ok) if prev_ok is not None else set()
-
-    for target in sorted(newly_dead):
-        has_changes = True
-        report_lines.append(
-            f"WARNUNG: OpenRouter-Mapping '{target}' neu tot (vorher OK)."
-        )
-    for target in sorted(revived):
-        has_changes = True
-        report_lines.append(
-            f"INFO: OpenRouter-Mapping '{target}' wieder lebendig."
-        )
-    for target in sorted(mapped_dead_now):
-        if target not in newly_dead:
-            report_lines.append(
-                f"INFO: OpenRouter-Mapping '{target}' weiterhin tot."
-            )
-
-    # d) ClinePass-Hinweis
-    report_lines.append(
-        f"ClinePass: {len(CLINE_PASS_MODELS)} Modelle hartcodiert "
-        f"(kein /models-Endpoint)."
-    )
 
     # e) Fallback-Luecken — statisch; Change-Markierung nur bei Aenderung
     gaps_now = _compute_fallback_gaps()
@@ -217,7 +170,6 @@ def run_check(
     new_state = {
         "last_check": today.isoformat(),
         "ollama_models": sorted(ollama_models),
-        "openrouter_mapped_ok": sorted(mapped_ok_now),
         "fallback_gaps": gaps_now,
     }
     _save_state(state_path, new_state)

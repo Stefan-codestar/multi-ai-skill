@@ -7,21 +7,16 @@ def test_defaults():
     c = MultiAIConfig()
     assert c.aggregator_model == "glm-5.2"
     assert c.worker_models == [
-        "glm-5.2",
-        "kimi-k2.7-code",
         "deepseek-v4-pro",
-        "minimax-m3",
-        "nemotron-3-ultra",
         "qwen3.5:397b",
-        "mistral-large-3:675b",
-        "gemini-3-flash-preview",
+        "glm-5.2",
     ]
     assert c.base_url == "https://ollama.com/v1"
     assert c.timeout_s == 240
     assert c.quorum_k == 2
-    assert c.worker_max_tokens == 32768
+    assert c.worker_max_tokens == 16384
     assert c.worker_temperature == 0.7
-    assert c.aggregator_max_tokens == 32768
+    assert c.aggregator_max_tokens == 16384
     assert c.aggregator_temperature == 0.3
     assert c.strategy == "moa"
     assert c.aggregator_extra_body == {"reasoning_effort": "xhigh"}

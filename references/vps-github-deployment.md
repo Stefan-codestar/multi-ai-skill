@@ -9,6 +9,26 @@ Notes on installing and maintaining this skill on a remote VPS via GitHub.
 git clone https://github.com/Stefan-codestar/multi-ai-skill.git ~/.hermes/skills/multi-ai-skill
 ```
 
+Verify the council is intact after cloning:
+
+```bash
+cd ~/.hermes/skills/multi-ai-skill
+python3 -m multiai --roster
+python3 -m multiai "Testfrage" --profile vps --strategy concat
+```
+
+On the VPS always pass `--profile vps` — the default profile is `claude`, whose
+aggregator (Opus 5) does not exist there. Without the flag the engine emits a
+synthesis brief that nothing on the VPS will act on.
+
+## Installing under Claude Code
+
+```bash
+git clone https://github.com/Stefan-codestar/multi-ai-skill.git ~/.claude/skills/rat-der-sieben
+```
+
+The default profile is already the right one there; no flag needed.
+
 SKILL.md must be in the repo root (not under `skill/`) for Hermes to discover it.
 
 ## Updating from GitHub
@@ -71,13 +91,17 @@ multi-ai-skill/
 ├── multiai/                 ← Python package
 │   ├── __init__.py
 │   ├── __main__.py
+│   ├── profiles.py          ← seats, lenses, environment profiles
+│   ├── council.py           ← brief / solo-council rendering
+│   ├── selfeval.py          ← self-evaluation prompt builder
 │   └── *.py
 ├── references/              ← Supplementary docs
+│   ├── rat-der-sieben.md
 │   ├── build-notes.md
 │   ├── moa-model-selection.md
 │   └── streaming.md
 ├── templates/               ← Config templates
-│   └── config_pro_3worker.py
+│   └── custom_profile.py
 └── tests/                   ← Test suite
     ├── conftest.py
     └── test_*.py

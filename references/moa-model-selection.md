@@ -157,3 +157,41 @@ glm-5.2                  kimi-k2.7-code          nemotron-3-nano:30b
 | `gpt-oss:120b` | Nur 120B — deutlich kleiner als die anderen Worker |
 | `kimi-k2.7-code` | Moonshot — wieder chinesisch, würde Diversitätsproblem nicht lösen |
 | `minimax-m3` | MiniMax — wieder chinesisch, gleiche Groupthink-Gefahr |
+---
+
+## Ausbau zum Rat der Sieben (2026-08-09)
+
+Die Auswahl aus dieser Session gilt weiter — sie wurde von 3 auf 7 Sitze
+erweitert und um Rollen ergaenzt. Details in `rat-der-sieben.md`.
+
+### Was aus den Erkenntnissen oben uebernommen wurde
+
+| Erkenntnis | Umsetzung |
+|-----------|-----------|
+| Self-Bias: Aggregator darf nicht Worker sein | `test_aggregator_never_sits_on_the_council` prueft beide Profile |
+| `glm-5.2` zeigte den geringsten Self-Bias | bleibt Aggregator im VPS-Profil |
+| Diversitaets-Prinzip (Labs, Architekturen) | `test_every_seat_comes_from_a_distinct_lab` — 7 Sitze, 7 Labs |
+| Synthesizer soll staerker sein als die Worker | unter Claude Code aggregiert Opus 5 |
+| Prompt-Falle "Aggregator" ist mehrdeutig | in `selfeval.py` immer als "Aggregator im Rat der Sieben" formuliert |
+
+### Neu belegte Sitze aus dem Katalog
+
+Vier Modelle, die im 3-Worker-Setup abgelehnt worden waren, sitzen jetzt im
+Rat — die Ablehnungsgruende von damals gelten bei sieben Sitzen nicht mehr:
+
+| Modell | Damals abgelehnt weil | Warum jetzt drin |
+|--------|----------------------|------------------|
+| `nemotron-3-ultra` | "eher Tech-Fokus" | genau richtig fuer den Skeptiker-Sitz |
+| `gpt-oss:120b` | "nur 120B, zu klein" | Groessenklasse zaehlt weniger als die eigenstaendige OpenAI-Lineage; passt zum Pragmatiker |
+| `kimi-k2.6` | "wieder chinesisch" | bei 7 Sitzen ist ein weiteres Lab ein Gewinn, kein Diversitaetsverlust |
+| `minimax-m3` | "wieder chinesisch" | dito; besetzt auf dem VPS den Sitz des Strategen |
+
+`gemma4:31b` bleibt draussen: 31B neben 397B und 675B bricht die
+Groessenklasse zu deutlich. Kandidat fuer ein Sparprofil, siehe
+`templates/custom_profile.py`.
+
+### Verfuegbarkeits-Check deckt jetzt beide Profile ab
+
+`modelcheck.WATCHED_MODELS` enthaelt alle Modelle beider Profile plus die
+HTTP-Aggregatoren — nicht mehr nur die drei Worker der laufenden Maschine.
+Faellt ein Modell aus dem Katalog, nennt die Warnung das betroffene Profil.

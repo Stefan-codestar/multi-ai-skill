@@ -4,8 +4,7 @@ import datetime
 import json
 import os
 
-from multiai.config import DEFAULT_WORKER_MODELS
-from multiai.modelcheck import is_due, run_check
+from multiai.modelcheck import WATCHED_MODELS, is_due, run_check
 
 
 # --- is_due ---
@@ -62,9 +61,9 @@ def test_run_check_first_run(tmp_path, monkeypatch):
     state_path = str(tmp_path / "state.json")
     today = datetime.date(2026, 7, 14)
 
-    workers = ["deepseek-v4-pro", "nemotron-3-ultra", "mistral-large-3:675b"]
-    monkeypatch.setattr("multiai.modelcheck.DEFAULT_WORKER_MODELS", workers)
-    monkeypatch.setattr("multiai.modelcheck.fetch_ollama_models", lambda: set(workers))
+    watched = ["deepseek-v4-pro", "nemotron-3-ultra", "mistral-large-3:675b"]
+    monkeypatch.setattr("multiai.modelcheck.WATCHED_MODELS", watched)
+    monkeypatch.setattr("multiai.modelcheck.fetch_ollama_models", lambda: set(watched))
 
     ran, report = run_check(state_path=state_path, today=today)
     assert ran is True
@@ -108,7 +107,7 @@ def test_run_check_no_changes(tmp_path, monkeypatch):
     state_path = str(tmp_path / "state.json")
     today = datetime.date(2026, 7, 14)
 
-    monkeypatch.setattr("multiai.modelcheck.fetch_ollama_models", lambda: set(DEFAULT_WORKER_MODELS))
+    monkeypatch.setattr("multiai.modelcheck.fetch_ollama_models", lambda: set(WATCHED_MODELS))
     run_check(state_path=state_path, today=today)
 
     today2 = datetime.date(2026, 7, 21)

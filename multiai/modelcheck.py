@@ -7,11 +7,16 @@ import os
 import sys
 import urllib.request
 
-from .config import DEFAULT_WORKER_MODELS
+from .profiles import PROFILES, all_http_models
 from .providers import _load_key
 
 
 STATE_PATH_DEFAULT = os.path.expanduser("~/.multiai/fallback_check.json")
+
+# Alle Modelle beider Profile, die per HTTP angefragt werden. Der Check laeuft
+# damit auf jeder Maschine gegen die volle Menge — ein Modell, das nur im
+# VPS-Profil sitzt, faellt auch unter Claude Code auf.
+WATCHED_MODELS = all_http_models()
 
 
 def is_due(last_iso_date: str | None, today: datetime.date) -> bool:
@@ -68,6 +73,15 @@ def _save_state(path: str, state: dict) -> None:
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2)
     os.replace(tmp, path)
+
+
+def _profiles_using(model: str) -> str:
+    """Namen der Profile, in denen ``model`` als Sitz oder Aggregator vorkommt."""
+    hits = [
+        name for name, p in sorted(PROFILES.items())
+        if model in p.worker_models or model == p.aggregator_model
+    ]
+    return ", ".join(f"Profil {n}" for n in hits) if hits else "kein Profil"
 
 
 def _compute_fallback_gaps() -> list[str]:
@@ -133,11 +147,14 @@ def run_check(
             has_changes = True
             report_lines.append(f"- {m}")
 
-    # b) Worker-Verfuegbarkeit im Ollama-Katalog
-    for worker in DEFAULT_WORKER_MODELS:
-        if worker not in ollama_models:
+    # b) Verfuegbarkeit aller Rats-Modelle im Ollama-Katalog
+    for model in WATCHED_MODELS:
+        if model not in ollama_models:
             has_changes = True
-            report_lines.append(f"WARNUNG: Worker '{worker}' nicht im Ollama-Katalog.")
+            report_lines.append(
+                f"WARNUNG: '{model}' nicht im Ollama-Katalog "
+                f"(betrifft {_profiles_using(model)})."
+            )
 
     # e) Fallback-Luecken — statisch; Change-Markierung nur bei Aenderung
     gaps_now = _compute_fallback_gaps()

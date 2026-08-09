@@ -187,3 +187,34 @@ def test_routing_provider_ignores_extra_kwargs():
     result = router.complete("deepseek-v4-pro", [{"role": "user", "content": "Hi"}])
     assert result == "OK"
 
+
+
+# ── Key wird faul geladen ──────────────────────────────────────────────────
+
+def test_missing_key_does_not_break_construction(monkeypatch):
+    """Ein fehlender Key darf erst beim Call auffallen, nicht schon im Konstruktor.
+
+    Sonst stirbt der ganze Lauf, statt dass die Sitze einzeln ausfallen und die
+    Pipeline in den Degradationsmodus gehen kann.
+    """
+    monkeypatch.delenv("OLLAMA_API_KEY", raising=False)
+    monkeypatch.setattr(
+        "multiai.providers._load_ollama_key",
+        lambda: (_ for _ in ()).throw(ProviderError("", "OLLAMA_API_KEY nicht gefunden")),
+    )
+    provider = OllamaCloudProvider()          # darf nicht werfen
+    with pytest.raises(ProviderError, match="OLLAMA_API_KEY nicht gefunden"):
+        _ = provider.api_key
+
+
+def test_explicit_key_is_used_without_lookup(monkeypatch):
+    def boom():
+        raise AssertionError("Key-Lookup haette nicht laufen duerfen")
+
+    monkeypatch.setattr("multiai.providers._load_ollama_key", boom)
+    assert OllamaCloudProvider(api_key="direkt").api_key == "direkt"
+
+
+def test_provider_error_without_model_reads_cleanly():
+    assert str(ProviderError("", "kein Key")) == "Provider-Fehler: kein Key"
+    assert "Modell 'x'" in str(ProviderError("x", "kaputt"))

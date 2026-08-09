@@ -27,7 +27,12 @@ class ProviderError(Exception):
         self.detail = detail
         self.status = status
         self.transient = transient
-        super().__init__(f"Provider-Fehler fuer Modell '{model}': {detail}")
+        # Nicht jeder Provider-Fehler haengt an einem Modell — ein fehlender
+        # API-Key etwa trifft alle gleichermassen.
+        if model:
+            super().__init__(f"Provider-Fehler fuer Modell '{model}': {detail}")
+        else:
+            super().__init__(f"Provider-Fehler: {detail}")
 
 
 class ThinkingModelBudgetError(ProviderError):
@@ -61,10 +66,25 @@ class OllamaCloudProvider:
         backoff_cap: float = DEFAULT_BACKOFF_CAP_S,
     ):
         self.base_url = base_url.rstrip("/")
-        self.api_key = api_key or _load_ollama_key()
+        self._api_key = api_key
         self.max_retries = max_retries
         self.backoff_base = backoff_base
         self.backoff_cap = backoff_cap
+
+    @property
+    def api_key(self) -> str:
+        """Laedt den Key beim ersten Zugriff, nicht schon im Konstruktor.
+
+        Dadurch schlaegt ein fehlender Key als Fehler des einzelnen Sitzes durch
+        und nicht als Absturz des ganzen Laufs — die Pipeline kann darauf
+        reagieren (Degradationsmodus, Hinweis auf den Solo-Modus).
+        """
+        if self._api_key is None:
+            self._api_key = self._load_key()
+        return self._api_key
+
+    def _load_key(self) -> str:
+        return _load_ollama_key()
 
     def _extra_headers(self) -> dict[str, str]:
         return {}
@@ -333,7 +353,10 @@ class OpenRouterProvider(OllamaCloudProvider):
     """OpenAI-kompatibler Provider fuer OpenRouter (pay-per-token, optionaler Fallback)."""
 
     def __init__(self, base_url: str = OPENROUTER_BASE_URL, api_key: str | None = None, **kw):
-        super().__init__(base_url=base_url, api_key=api_key or _load_openrouter_key(), **kw)
+        super().__init__(base_url=base_url, api_key=api_key, **kw)
+
+    def _load_key(self) -> str:
+        return _load_openrouter_key()
 
     def _extra_headers(self) -> dict[str, str]:
         return {

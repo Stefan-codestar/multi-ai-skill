@@ -93,3 +93,68 @@ Key-Rotation: ollama.com → Account → API Keys. Nach Rotation neuen Key in `~
 | Sprint 2 (nach Anpassung) | 42/42 PASS |
 
 5 Tests weniger: ClinePass-spezifische Tests (3 in test_providers, mehre in test_modelcheck) wurden durch neue, zum vereinfachten Setup passende Tests ersetzt.
+
+---
+
+# Ausbau zum Rat der Sieben (Session 2026-08-09)
+
+## Ziel
+Aus dem 3-Worker-`multiai` einen 7-Sitze-Rat machen, der unter Claude Code
+UND auf dem Hermes VPS laeuft — mit unterschiedlichen Aggregatoren.
+
+## Struktur-Aenderungen
+
+| Datei | Was |
+|-------|-----|
+| `profiles.py` (neu) | Sitze, Rollen-Prompts, die zwei Profile, Diversitaets-Report |
+| `council.py` (neu) | Brief- und Solo-Modus-Rendering (Ausgabe an Claude Code) |
+| `selfeval.py` (neu) | baut die Selbstbewertungs-Frage aus dem Repo |
+| `config.py` | profilbasiert, `validate()`, `from_profile()`, `max_parallel` |
+| `fanout.py` | Lens je Sitz, `Draft.role`/`.seat`/`.label`, Parallelitaetsgrenze |
+| `pipeline.py` | Strategien `brief` und `seats`, Profil im Run-Log |
+| `cli.py` | `--profile`, `--roster`, `--self-eval`, `--max-parallel`, `--no-lenses` |
+| `modelcheck.py` | `WATCHED_MODELS` statt `DEFAULT_WORKER_MODELS` |
+
+## Fallstricke aus dieser Session
+
+### 1. Rollennamen im Aggregator-Prompt kollidieren mit Test-Assertions
+`AGGREGATOR_SYSTEM_PROMPT` zaehlt alle sieben Rollen auf. Ein Test wie
+`assert "Ingenieur" not in system` (fuer "ausgefallener Sitz fehlt") schlaegt
+deshalb fehl, obwohl der Code stimmt. Auf das Label pruefen, nicht auf den
+Rollennamen: `assert "### 2. Ingenieur (b)" not in system`.
+
+### 2. `--stream`-Hinweis gehoert nach stderr, nicht hinter `not --json`
+Erst war der Hinweis "in-process, --stream wirkungslos" an `not args.json`
+gekoppelt und blieb bei `--json` stumm. stderr stoert die JSON-Ausgabe auf
+stdout nicht — der Hinweis kommt jetzt immer.
+
+### 3. `--models` muss vor der Validierung greifen
+`--models a,b,c` aendert die Sitzzahl. Wird es per `setattr` nachtraeglich
+gesetzt, passen `seat_roles`/`seat_lenses` nicht mehr zu `worker_models` und
+`validate()` schlaegt zu Recht Alarm. Deshalb geht `cli._build_config` bei
+`--models` und `--profile` ueber `from_profile()` statt ueber `from_dict()`.
+
+### 4. Parallelitaetsgrenze ist kein Detail
+Ohne `max_parallel=3` gehen auf Ollama Cloud Pro alle sieben Anfragen raus,
+vier warten server-seitig und laufen dabei in den 240-s-Client-Timeout. Sieht
+aus wie sieben kaputte Modelle, ist aber nur eine fehlende Semaphore.
+`test_max_parallel_limits_concurrency` haelt es mit einer `threading.Barrier`
+fest.
+
+## Umgebungsgrenze dieser Session
+
+Gebaut in einer Claude-Code-Web-Sandbox ohne `OLLAMA_API_KEY`; `ollama.com` und
+`openrouter.ai` sind dort per Egress-Policy gesperrt (403 auf CONNECT). Kein
+Live-Lauf der sieben Sitze moeglich. Abgenommen wurde deshalb offline
+(Testsuite) plus `--self-eval --strategy seats`. Der Lauf mit echten sieben
+Modellen gehoert auf eine Maschine mit Key.
+
+## Testbilanz
+
+| Phase | Tests |
+|-------|-------|
+| Sprint 2 (3 Worker) | 42 |
+| Rat der Sieben | 118 |
+
+Neu: `test_profiles.py` (14), `test_council.py` (12), `test_selfeval.py` (7),
+`test_cli.py` (13); `test_pipeline.py` von 6 auf 22 erweitert.

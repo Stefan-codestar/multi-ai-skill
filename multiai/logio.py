@@ -18,12 +18,15 @@ def log_run(record: dict, log_dir: str) -> None:
             "ts": record.get("ts"),
             "iso": record.get("iso"),
             "question": record.get("question", "")[:200],
+            "profile": record.get("profile"),
             "strategy": record.get("strategy"),
             "aggregator": record.get("aggregator"),
             "total_s": record.get("total_s"),
             "n_ok": record.get("n_ok"),
             "drafts": [
                 {
+                    "seat": d.get("seat"),
+                    "role": d.get("role"),
                     "model": d.get("model"),
                     "ok": d.get("ok"),
                     "latency_s": d.get("latency_s"),

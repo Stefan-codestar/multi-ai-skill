@@ -4,6 +4,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Any
 
+from .council import ROLE_EFFORT
 from .profiles import (
     DEFAULT_PROFILE_NAME,
     Profile,
@@ -169,6 +170,16 @@ class MultiAIConfig:
         if self.seat_roles and index < len(self.seat_roles):
             return self.seat_roles[index]
         return self.worker_models[index]
+
+    def extra_body_for(self, index: int) -> dict[str, Any]:
+        """Reasoning-Effort pro Rolle. Faellt auf worker_extra_body zurueck,
+        wenn die Rolle nicht in ROLE_EFFORT steht (z.B. bei --no-lenses oder
+        benutzerdefinierten Rollen)."""
+        role = self.role_for(index) if self.seat_roles else ""
+        effort = ROLE_EFFORT.get(role)
+        if effort is not None:
+            return {"reasoning_effort": effort}
+        return dict(self.worker_extra_body)
 
     @property
     def council_size(self) -> int:

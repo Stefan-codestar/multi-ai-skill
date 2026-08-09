@@ -36,10 +36,10 @@ Skeptiker und eines als Pragmatiker gefragt wird.
 | 1 | Analytiker | zerlegt, prueft Logik | `deepseek-v4-pro` | `deepseek-v4-pro` |
 | 2 | Ingenieur | konkrete Umsetzung | `qwen3.5:397b` | `qwen3.5:397b` |
 | 3 | Skeptiker | Red-Team, Gegenbeispiele | `nemotron-3-ultra` | `nemotron-3-ultra` |
-| 4 | Stratege | Langfristfolgen, Trade-offs | `glm-5.2` | `minimax-m3` |
+| 4 | Stratege | Langfristfolgen, Trade-offs | `glm-5.2` | `gemini-2.5-pro` |
 | 5 | Pragmatiker | einfachste tragfaehige Loesung | `gpt-oss:120b` | `gpt-oss:120b` |
 | 6 | Erklaerer | Klarheit, Beispiel, Analogie | `mistral-large-3:675b` | `mistral-large-3:675b` |
-| 7 | Querdenker | Reframing, unkonventionell | `kimi-k2.6` | `kimi-k2.6` |
+| 7 | Querdenker | Reframing, unkonventionell | `command-r-plus` | `command-r-plus` |
 | — | **Aggregator** | Synthese | **Opus 5 (in-process)** | **`glm-5.2` (HTTP)** |
 
 Sieben Labs, drei Laender pro Rat. Der Aggregator sitzt in **keinem** Profil im
@@ -90,9 +90,9 @@ cd ~/.hermes/skills/multi-ai-skill && python3 -m multiai "<FRAGE>" --profile vps
 
 ## Wann AUTOMATISCH verwenden (ohne expliziten Befehl)
 
-Setze den Rat eigenstaendig ein, wenn **mindestens ZWEI der fuenf Marker**
+Setze den Rat eigenstaendig ein, wenn **mindestens DREI der fuenf Marker**
 zutreffen **und** die Frage nicht unter "Wann NICHT" faellt.
-Ein einzelner Marker reicht nicht — er Fuehrt zu haeufigen, unnoetig langsamen
+Zwei Marker reichen nicht — sie fuehren zu haeufigen, unnoetig langsamen
 Einsaetzen bei Fragen, die ein Modell genauso gut beantwortet.
 
 Die fuenf Marker (zaehle mit):
@@ -112,6 +112,14 @@ Beispiel: "Welche Datenbank fuer ein neues Projekt?" trifft Marker 1 und 3
 (zwei) -> Rat. "Was ist ein Monoid?" trifft keinen -> kein Rat. "Ist Rust
 besser als Go?" trifft Marker 1 allein -> kein Rat (eher eine Vergleichsanfrage,
 die ein Modell beantworten kann).
+
+Auch bei >=3 Markern NICHT ausloesen bei: Code-Schreiben, Datei-Edits, Befehle
+ausfuehren, Follow-Up-Fragen mit Bezug auf laufenden Kontext, Lookup-Fragen
+(Faktenwissen, Definitionen).
+
+Tageslimit: max. 8 Runs oder 600k Token. Ueberschritten -> nur noch bei
+explizitem Befehl. State-Datei: `~/.hermes/.multiai_budget.json` mit Datum und
+Zaehler.
 
 ## Wann explizit verwenden (User-Befehl)
 
@@ -182,8 +190,9 @@ besetzt Opus 5 die sieben Sitze selbst — ein Modell, sieben Blickwinkel:
 python3 -m multiai "<FRAGE>" --strategy seats
 ```
 
-Das ist **schwaecher** als der echte Rat. Sag dem Nutzer in einem Halbsatz,
-dass im Solo-Modus getagt wurde.
+Das ist **deutlich schwaecher** als der echte Rat — sieben Variationen einer
+einzigen Stimme, ohne die Modell-Diversitaet die den Rat ausmacht. Sag dem
+Nutzer in einem Halbsatz, dass im Solo-Modus getagt wurde.
 
 ## Weitere Optionen
 

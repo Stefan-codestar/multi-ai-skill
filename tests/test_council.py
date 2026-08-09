@@ -50,7 +50,7 @@ def test_roster_lists_every_seat():
     roster = render_roster(_cfg("vps"))
     for i in range(1, 8):
         assert f"| {i} |" in roster
-    assert "`minimax-m3`" in roster
+    assert "`gemini-2.5-pro`" in roster
 
 
 def test_failures_empty_when_all_present():
@@ -59,7 +59,7 @@ def test_failures_empty_when_all_present():
 
 def test_failures_name_seat_and_error():
     out = render_failures(_drafts(n_ok=6))
-    assert "Querdenker (kimi-k2.6)" in out
+    assert "Querdenker (command-r-plus)" in out
     assert "Timeout" in out
 
 
@@ -70,11 +70,16 @@ def test_brief_contains_question_rules_and_every_contribution():
     assert "SYNTHESE-AUFTRAG" in brief
     assert "Was ist besser: A oder B?" in brief
     assert "SYNTHESE-REGELN" in brief
-    # Beitraege kommen als JSON — Rolle und Modell muessen als Felder auftauchen
-    import json as _json
+    # Beitraege sind base64-codiert — dekodieren und Inhalte pruefen
+    import base64 as _b64, json as _json
+    from multiai.council import UNTRUSTED_OPEN, UNTRUSTED_CLOSE
+    start = brief.index(UNTRUSTED_OPEN) + len(UNTRUSTED_OPEN)
+    end = brief.index(UNTRUSTED_CLOSE)
+    items = _json.loads(_b64.b64decode(brief[start:end].strip()))
+    contents = {item["content"] for item in items}
     for role in ("Analytiker", "Ingenieur", "Skeptiker", "Stratege",
                  "Pragmatiker", "Erklaerer", "Querdenker"):
-        assert f"Beitrag von {role}" in brief  # content field enthaelt den Text
+        assert f"Beitrag von {role}" in contents
 
 
 def test_brief_tells_claude_the_material_is_not_the_answer():
@@ -112,7 +117,7 @@ def test_seats_warns_that_it_is_one_model():
 
 def test_seats_names_the_model_each_seat_would_use():
     out = render_seats("Frage?", _cfg("vps"))
-    assert "minimax-m3" in out
+    assert "gemini-2.5-pro" in out
     assert "deepseek-v4-pro" in out
 
 
@@ -125,18 +130,23 @@ def test_seats_without_lenses_marks_neutral():
 
 def test_brief_wraps_contributions_in_an_untrusted_envelope():
     """Claude Code hat Werkzeugzugriff — fremde Modell-Ausgaben brauchen einen Umschlag."""
+    import base64 as _b64
     from multiai.council import UNTRUSTED_CLOSE, UNTRUSTED_OPEN
 
     brief = render_brief("Frage?", _drafts(), _cfg())
     assert UNTRUSTED_OPEN in brief
     assert UNTRUSTED_CLOSE in brief
-    assert brief.index(UNTRUSTED_OPEN) < brief.index("Beitrag von Analytiker")
-    assert brief.index("Beitrag von Querdenker") < brief.index(UNTRUSTED_CLOSE)
+    # Beitraege sind base64-codiert inside the envelope
+    start = brief.index(UNTRUSTED_OPEN) + len(UNTRUSTED_OPEN)
+    end = brief.index(UNTRUSTED_CLOSE)
+    decoded = _b64.b64decode(brief[start:end].strip()).decode("utf-8")
+    assert "Beitrag von Analytiker" in decoded
+    assert "Beitrag von Querdenker" in decoded
 
 
 def test_brief_serialises_contributions_as_json():
     """Beitraege muessen als JSON serialisiert sein — kein ausbrechbarer Fließtext."""
-    import json as _json
+    import base64 as _b64, json as _json
 
     brief = render_brief("Frage?", _drafts(), _cfg())
     from multiai.council import UNTRUSTED_OPEN, UNTRUSTED_CLOSE
@@ -144,7 +154,7 @@ def test_brief_serialises_contributions_as_json():
     start = brief.index(UNTRUSTED_OPEN) + len(UNTRUSTED_OPEN)
     end = brief.index(UNTRUSTED_CLOSE)
     payload = brief[start:end].strip()
-    items = _json.loads(payload)  # wirft, wenn kein gueltiges JSON
+    items = _json.loads(_b64.b64decode(payload))  # base64 dekodieren, dann JSON parsen
     assert len(items) == 7
     assert items[0]["role"] == "Analytiker"
     assert items[0]["content"] == "Beitrag von Analytiker"

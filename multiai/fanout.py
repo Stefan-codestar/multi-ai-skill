@@ -85,12 +85,15 @@ def fan_out(
     temperature=0.7,
     max_workers=None,
     extra_body=None,
+    extra_bodies=None,
     lenses=None,
     roles=None,
 ):
     """Ruft alle Sitze parallel auf und liefert die Entwuerfe in Sitz-Reihenfolge.
 
     ``lenses`` und ``roles`` sind optionale Parallel-Listen zu ``models``.
+    ``extra_bodies`` ist eine optionale Parallel-Liste zu ``models`` mit
+    pro-Sitz ``extra_body``-Dicts; es hat Vorrang vor dem skalaren ``extra_body``.
     ``max_workers`` begrenzt die Gleichzeitigkeit — auf Ollama Cloud Pro sind
     nur drei Modelle gleichzeitig aktiv, mehr Threads bringen dort nichts und
     lassen die ueberzaehligen Anfragen in den Timeout laufen.
@@ -112,7 +115,8 @@ def fan_out(
                 timeout,
                 max_tokens,
                 temperature,
-                dict(extra_body) if extra_body else None,
+                (dict(extra_bodies[i]) if extra_bodies and i < len(extra_bodies)
+                 else dict(extra_body) if extra_body else None),
                 lenses[i] if lenses and i < len(lenses) else None,
                 roles[i] if roles and i < len(roles) else "",
                 i + 1,

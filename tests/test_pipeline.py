@@ -66,7 +66,7 @@ def _cfg(profile="vps", **kw):
 
 def test_full_council_synthesises():
     provider = FakeProvider(responses=_all_seats())
-    result = run_multiai("Frage?", config=_cfg(), provider=provider)
+    result = run_multiai("Frage?", config=_cfg(quorum_k=7), provider=provider)
     assert result.n_ok == 7
     assert result.council_size == 7
     assert result.profile == "vps"
@@ -110,21 +110,23 @@ def test_empty_council_falls_back_to_aggregator_alone():
     assert result.final == "Allein"
 
 
-def test_aggregator_crash_falls_back_to_brief():
-    """Aggregator crasht (HTTP-Fehler) -> Fallback auf brief, Beitraege gehen nicht verloren."""
+def test_aggregator_crash_falls_back_to_direct_answer():
+    """Aggregator crasht (HTTP-Fehler) -> Fallback: Aggregator antwortet allein ohne Rat-Beitraege."""
     class SynthCrashProvider(FakeProvider):
         def complete(self, model, messages, **kwargs):
             if _is_synth(messages):
                 raise RuntimeError("Aggregator 500")
             return super().complete(model, messages, **kwargs)
 
-    provider = SynthCrashProvider(responses=_all_seats())
-    result = run_multiai("Frage?", config=_cfg(), provider=provider)
+    provider = SynthCrashProvider(
+        responses={**_all_seats(), "glm-5.2": "Direkte Antwort"}
+    )
+    result = run_multiai("Frage?", config=_cfg(quorum_k=7), provider=provider)
     assert result.n_ok == 7
-    assert result.strategy == "brief"
+    assert result.strategy == "moa"
     assert "Aggregator-Fallback" in result.final
-    assert "SYNTHESE-AUFTRAG" in result.final
-    assert result.needs_external_synthesis is True
+    assert "Direkte Antwort" in result.final
+    assert result.needs_external_synthesis is False
 
 
 def test_total_failure_raises():
@@ -137,7 +139,7 @@ def test_total_failure_raises():
 
 def test_each_seat_gets_its_own_lens():
     provider = FakeProvider(responses=_all_seats())
-    run_multiai("Frage?", config=_cfg(), provider=provider)
+    run_multiai("Frage?", config=_cfg(quorum_k=7), provider=provider)
     systems = [
         next(m["content"] for m in messages if m["role"] == "system")
         for _model, messages, _kw in provider.seat_calls
@@ -166,8 +168,14 @@ def test_seat_drafts_carry_role_and_position():
 def test_worker_extra_body_reaches_every_seat():
     provider = FakeProvider(responses=_all_seats())
     run_multiai("Frage?", config=_cfg(), provider=provider)
+    from multiai.council import ROLE_EFFORT
+    expected_efforts = set(ROLE_EFFORT.values())
+    efforts_seen = set()
     for _model, _messages, kwargs in provider.seat_calls:
-        assert kwargs.get("extra_body") == {"reasoning_effort": "xhigh"}
+        effort = kwargs.get("extra_body", {}).get("reasoning_effort")
+        assert effort in expected_efforts
+        efforts_seen.add(effort)
+    assert efforts_seen == expected_efforts
 
 
 def test_max_parallel_limits_concurrency():
@@ -204,14 +212,14 @@ def test_concat_returns_all_contributions_unsynthesised():
     assert result.strategy == "concat"
     assert provider.synth_calls == []
     assert "Analytiker (deepseek-v4-pro)" in result.final
-    assert "Querdenker (kimi-k2.6)" in result.final
+    assert "Querdenker (command-r-plus)" in result.final
 
 
 # ── brief: Claude Code ist der Aggregator ──────────────────────────────────
 
 def test_brief_returns_instruction_without_calling_an_aggregator():
     provider = FakeProvider(responses=_all_seats(CLAUDE_SEATS))
-    result = run_multiai("Frage?", config=_cfg("claude"), provider=provider)
+    result = run_multiai("Frage?", config=_cfg("claude", quorum_k=7), provider=provider)
     assert result.strategy == "brief"
     assert result.needs_external_synthesis is True
     assert provider.synth_calls == []          # kein HTTP-Aggregator
@@ -282,7 +290,7 @@ def test_run_log_records_profile_and_roles(tmp_path):
     import json
 
     provider = FakeProvider(responses=_all_seats())
-    cfg = _cfg(enable_logging=True, log_dir=str(tmp_path))
+    cfg = _cfg(enable_logging=True, log_dir=str(tmp_path), quorum_k=7)
     run_multiai("Frage?", config=cfg, provider=provider)
 
     lines = (tmp_path / "runs.jsonl").read_text(encoding="utf-8").strip().splitlines()

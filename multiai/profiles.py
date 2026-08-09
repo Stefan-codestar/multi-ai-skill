@@ -32,7 +32,9 @@ LENS_ANALYST = (
     "Du bist DER ANALYTIKER im Rat der Sieben. Zerlege die Frage in ihre Bestandteile, "
     "mache implizite Annahmen explizit und pruefe die Logik Schritt fuer Schritt. "
     "Wo Zahlen, Definitionen oder Kausalketten im Spiel sind, arbeite sie sauber heraus. "
-    "Priorisiere Korrektheit vor Vollstaendigkeit. Antworte strukturiert und praezise."
+    "Priorisiere Korrektheit vor Vollstaendigkeit. Antworte strukturiert und praezise. "
+    "Du zerlegst die Frage in Komponenten. Du bewertest NICHT, du schlaegst NICHTS vor. "
+    "Nur Zerlegung und Logikpruefung."
 )
 
 LENS_ENGINEER = (
@@ -47,21 +49,27 @@ LENS_SKEPTIC = (
     "Fehler, Gegenbeispiele, Fehlannahmen und Risiken — auch in der Frage selbst. "
     "Was koennte schiefgehen? Was wird uebersehen? Wo ist die naheliegende Antwort "
     "falsch? Sei konkret statt allgemein warnend. Wenn die naheliegende Antwort "
-    "tatsaechlich richtig ist, sage das ebenfalls klar."
+    "tatsaechlich richtig ist, sage das ebenfalls klar. "
+    "Du greifst die Logik ANDERER Beitraege an (falls vorhanden), nicht die Frage selbst. "
+    "Du suchst Gegenbeispiele und Randfaelle, nicht nach Bestaetigung."
 )
 
 LENS_STRATEGIST = (
     "Du bist DER STRATEGE im Rat der Sieben. Betrachte die langfristigen Folgen: "
     "Welche Option altert am besten? Welche Trade-offs entstehen, welche Tueren "
     "werden zugemacht? Vergleiche echte Alternativen gegeneinander statt nur eine "
-    "zu beschreiben. Denke in Konsequenzen, nicht in Features."
+    "zu beschreiben. Denke in Konsequenzen, nicht in Features. "
+    "Du ignorierst Beitraege des Pragmatikers, die weniger als 1 Satz haben — "
+    "sie sind zu duenn fuer Strategie. Du denkst in Langfristfolgen und Trade-offs."
 )
 
 LENS_PRAGMATIST = (
     "Du bist DER PRAGMATIKER im Rat der Sieben. Suche die einfachste Loesung, die "
     "das Problem wirklich loest. Bewerte Aufwand gegen Nutzen, benenne, was man "
     "weglassen kann (YAGNI), und was 80 Prozent des Werts mit 20 Prozent des "
-    "Aufwands bringt. Misstraue Ueberkonstruktion."
+    "Aufwands bringt. Misstraue Ueberkonstruktion. "
+    "Du ignorierst Beitraege des Strategen, die mehr als 3 Saetze haben — sie sind "
+    "zu komplex um pragmatisch zu sein. Du nimmst nur die einfachste tragfaehige Loesung."
 )
 
 LENS_EXPLAINER = (
@@ -99,10 +107,10 @@ MODEL_ORIGINS: dict[str, tuple[str, str]] = {
     "deepseek-v4-pro":       ("DeepSeek", "CN"),
     "qwen3.5:397b":          ("Alibaba", "CN"),
     "nemotron-3-ultra":      ("NVIDIA", "US"),
-    "minimax-m3":            ("MiniMax", "CN"),
+    "gemini-2.5-pro":        ("Google", "US"),
     "gpt-oss:120b":          ("OpenAI", "US"),
     "mistral-large-3:675b":  ("Mistral", "FR"),
-    "kimi-k2.6":             ("Moonshot", "CN"),
+    "command-r-plus":        ("Cohere", "CA"),
     "glm-5.2":               ("Z.ai", "CN"),
     "claude-opus-5":         ("Anthropic", "US"),
 }
@@ -140,7 +148,7 @@ def _base_seats(strategist_model: str) -> list[Seat]:
               "Kompakt und direkt, neigt zu einfachen Loesungen"),
         _seat("Erklaerer",   LENS_EXPLAINER,   "mistral-large-3:675b",
               "Fluessige Sprache, europaeische Perspektive"),
-        _seat("Querdenker",  LENS_MAVERICK,    "kimi-k2.6",
+        _seat("Querdenker",  LENS_MAVERICK,    "command-r-plus",
               "Unkonventionelle Ansaetze, ungewoehnliche Rahmungen"),
     ]
 
@@ -185,7 +193,7 @@ OLLAMA_BASE_URL = "https://ollama.com/v1"
 
 PROFILE_VPS = Profile(
     name="vps",
-    seats=_base_seats(strategist_model="minimax-m3"),
+    seats=_base_seats(strategist_model="gemini-2.5-pro"),
     aggregator_model="glm-5.2",
     aggregator_kind="http",
     aggregator_lab="Z.ai",

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import os
 import time
 from dataclasses import dataclass
 from typing import Any
 
 from .aggregate import concat_drafts, synthesize, synthesize_stream
 from .config import MultiAIConfig
-from .council import render_brief, render_seats
+from .council import EFFORT_ORDER, ROLE_EFFORT, render_brief, render_seats
 from .fanout import Draft, fan_out
 from .logio import log_run
 from .providers import RoutingProvider
@@ -14,6 +15,9 @@ from .providers import RoutingProvider
 # Strategien, deren Ausgabe ein AUFTRAG an Claude Code ist und keine fertige
 # Antwort an den Nutzer.
 EXTERNAL_SYNTHESIS_STRATEGIES = frozenset({"brief", "seats"})
+
+# Default-State-Pfad fuer den modelcheck.
+MODELCHECK_STATE_PATH = os.path.expanduser("~/.hermes/.multiai_check.json")
 
 
 @dataclass
@@ -26,6 +30,7 @@ class Result:
     n_ok: int
     profile: str = ""
     council_size: int = 0
+    modelcheck_warning: str = ""
 
     @property
     def needs_external_synthesis(self) -> bool:
@@ -84,19 +89,99 @@ def _log(config: MultiAIConfig, record_args: tuple) -> None:
 
 
 def _convene(provider, question: str, config: MultiAIConfig) -> list[Draft]:
-    """Ruft die sieben Sitze parallel auf (begrenzt durch ``max_parallel``)."""
-    return fan_out(
-        provider,
-        [{"role": "user", "content": question}],
-        config.worker_models,
-        timeout=config.timeout_s,
-        max_tokens=config.worker_max_tokens,
-        temperature=config.worker_temperature,
-        extra_body=config.worker_extra_body,
-        max_workers=config.max_parallel,
-        lenses=[config.lens_for(i) for i in range(config.council_size)],
-        roles=[config.role_for(i) for i in range(config.council_size)],
+    """Ruft die sieben Sitze in Wellen auf (begrenzt durch ``max_parallel``).
+
+    Pro Sitz wird ``config.extra_body_for(i)`` verwendet — Reasoning-Effort
+    variiert nach Rolle (Vorschlag 5). Die Sitze werden nach Reasoning-Effort
+    sortiert, damit schnelle Modelle in Welle 1 laufen (Vorschlag 7).
+
+    Quorum-Early-Exit (Vorschlag 7): Nach jeder Welle wird geprueft, ob genug
+    Sitze erfolgreich geantwortet haben (>= ``quorum_k``). Wenn ja, werden
+    verbleibende Wellen nicht mehr gestartet — die langsamsten Sitze fallen weg.
+    """
+    from dataclasses import replace as _dc_replace
+
+    n = config.council_size
+    extra_bodies = [config.extra_body_for(i) for i in range(n)]
+
+    # Sortiere Sitze nach Reasoning-Effort (low -> xhigh) fuer Wellen-Sortierung.
+    # Behalte die Original-Indizes fuer Lenses und Roles.
+    indexed = list(range(n))
+    indexed.sort(
+        key=lambda i: EFFORT_ORDER.get(
+            extra_bodies[i].get("reasoning_effort", "xhigh"), 3
+        )
     )
+
+    sorted_models = [config.worker_models[i] for i in indexed]
+    sorted_extra_bodies = [extra_bodies[i] for i in indexed]
+    sorted_lenses = [config.lens_for(i) for i in indexed]
+    sorted_roles = [config.role_for(i) for i in indexed]
+
+    result: list[Draft | None] = [None] * n  # type: ignore
+    n_ok = 0
+    max_parallel = max(1, config.max_parallel)
+
+    for wave_start in range(0, n, max_parallel):
+        wave_end = min(wave_start + max_parallel, n)
+        wave_models = sorted_models[wave_start:wave_end]
+        wave_ebs = sorted_extra_bodies[wave_start:wave_end]
+        wave_lenses = sorted_lenses[wave_start:wave_end]
+        wave_roles = sorted_roles[wave_start:wave_end]
+        wave_indices = indexed[wave_start:wave_end]
+
+        wave_drafts = fan_out(
+            provider,
+            [{"role": "user", "content": question}],
+            wave_models,
+            timeout=config.timeout_s,
+            max_tokens=config.worker_max_tokens,
+            temperature=config.worker_temperature,
+            extra_bodies=wave_ebs,
+            max_workers=len(wave_models),
+            lenses=wave_lenses,
+            roles=wave_roles,
+        )
+
+        for draft, orig_idx in zip(wave_drafts, wave_indices):
+            result[orig_idx] = _dc_replace(draft, seat=orig_idx + 1)
+            if draft.ok:
+                n_ok += 1
+
+        # Quorum-Early-Exit: genug Sitze ok -> verbleibende Wellen abbrechen.
+        if n_ok >= config.quorum_k and wave_end < n:
+            for remaining_idx in indexed[wave_end:]:
+                result[remaining_idx] = Draft(
+                    model=config.worker_models[remaining_idx],
+                    content="", ok=False,
+                    error="Quorum erreicht — Sitz nicht mehr aufgerufen",
+                    latency_s=0.0,
+                    role=config.role_for(remaining_idx),
+                    seat=remaining_idx + 1,
+                )
+            break
+
+    return result  # type: ignore[return-value]
+
+
+def _run_modelcheck_warning() -> str:
+    """Fuehrt den modelcheck aus und liefert eine Warnung, wenn Aenderungen gefunden wurden.
+
+    Blockiert den Lauf nicht. Wenn der Check nicht faellig ist oder keine
+    Aenderungen findet, wird ein leerer String zurueckgegeben.
+    """
+    try:
+        from . import modelcheck
+        _ran, report = modelcheck.run_check(state_path=MODELCHECK_STATE_PATH)
+    except Exception:
+        return ""
+    if not _ran:
+        return ""
+    # "nicht faellig" -> kein Lauf; "KEINE AENDERUNGEN" / "BASELINE ERSTELLT" -> ok
+    first_line = report.splitlines()[0] if report else ""
+    if "nicht faellig" in report or first_line.startswith("KEINE AENDERUNGEN") or first_line.startswith("BASELINE ERSTELLT"):
+        return ""
+    return report
 
 
 def run_multiai(
@@ -119,6 +204,9 @@ def run_multiai(
 
     if provider is None:
         provider = RoutingProvider(ollama_base_url=config.base_url)
+
+    # Vorschlag 8: modelcheck vor jedem Lauf (informell, nicht blockierend)
+    modelcheck_warning = _run_modelcheck_warning()
 
     t0 = time.time()
     drafts = _convene(provider, question, config)
@@ -144,15 +232,24 @@ def run_multiai(
                     extra_body=config.aggregator_extra_body,
                 )
             except Exception as agg_err:
-                # Aggregator-Crash (HTTP-Fehler, Timeout, 429) -> Fallback
-                # auf brief: der Brief geht an Claude Code, die Beitraege
-                # gehen nicht verloren.
-                final = render_brief(question, drafts, config)
+                # Aggregator-Crash (HTTP-Fehler, Timeout, 429).
+                # Vorschlag 1: Bei HTTP-Profil (vps/strategy=moa) wird der
+                # Aggregator mit der Frage allein gerufen — auf dem VPS gibt
+                # es kein Claude Code als Fallback. Bei strategy=brief (claude)
+                # bleibt der Brief als Fallback erhalten.
+                final = provider.complete(
+                    aggregator_model,
+                    [{"role": "user", "content": (
+                        f"Antworte direkt auf diese Frage ohne Rat-Beitraege: {question}"
+                    )}],
+                    temperature=config.aggregator_temperature,
+                    max_tokens=config.aggregator_max_tokens,
+                    extra_body=config.aggregator_extra_body,
+                )
                 final = (
                     f"[Aggregator-Fallback: {agg_err} — "
-                    f"Synthese an Claude Code delegiert]\n\n{final}"
+                    f"Aggregator antwortet allein ohne Rat-Beitraege]\n\n{final}"
                 )
-                strategy = "brief"
             used_quorum = n_ok < config.quorum_k
         else:
             # Kein Sitz erreichbar -> der Aggregator antwortet allein.
@@ -180,6 +277,7 @@ def run_multiai(
         n_ok=n_ok,
         profile=config.profile,
         council_size=config.council_size,
+        modelcheck_warning=modelcheck_warning,
     )
 
 
@@ -230,14 +328,21 @@ def run_multiai_stream(
                     yield chunk
                 final = "".join(parts)
             except Exception as agg_err:
-                # Aggregator-Crash -> Fallback auf brief
-                final = render_brief(question, drafts, config)
+                # Aggregator-Crash -> Fallback: Aggregator antwortet allein (Vorschlag 1)
+                final = provider.complete(
+                    aggregator_model,
+                    [{"role": "user", "content": (
+                        f"Antworte direkt auf diese Frage ohne Rat-Beitraege: {question}"
+                    )}],
+                    temperature=config.aggregator_temperature,
+                    max_tokens=config.aggregator_max_tokens,
+                    extra_body=config.aggregator_extra_body,
+                )
                 final = (
                     f"[Aggregator-Fallback: {agg_err} — "
-                    f"Synthese an Claude Code delegiert]\n\n{final}"
+                    f"Aggregator antwortet allein ohne Rat-Beitraege]\n\n{final}"
                 )
                 yield final
-                strategy = "brief"
         else:
             final = provider.complete(
                 aggregator_model,

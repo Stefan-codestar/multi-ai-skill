@@ -80,7 +80,7 @@ def test_with_models_empty_is_noop():
 
 def test_all_worker_models_covers_both_profiles():
     models = all_worker_models()
-    assert "minimax-m3" in models     # nur im VPS-Profil
+    assert "gemini-2.5-pro" in models     # nur im VPS-Profil
     assert "glm-5.2" in models        # nur im Claude-Profil als Sitz
     assert models == sorted(set(models))
 

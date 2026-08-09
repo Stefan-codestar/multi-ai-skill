@@ -110,6 +110,23 @@ def test_empty_council_falls_back_to_aggregator_alone():
     assert result.final == "Allein"
 
 
+def test_aggregator_crash_falls_back_to_brief():
+    """Aggregator crasht (HTTP-Fehler) -> Fallback auf brief, Beitraege gehen nicht verloren."""
+    class SynthCrashProvider(FakeProvider):
+        def complete(self, model, messages, **kwargs):
+            if _is_synth(messages):
+                raise RuntimeError("Aggregator 500")
+            return super().complete(model, messages, **kwargs)
+
+    provider = SynthCrashProvider(responses=_all_seats())
+    result = run_multiai("Frage?", config=_cfg(), provider=provider)
+    assert result.n_ok == 7
+    assert result.strategy == "brief"
+    assert "Aggregator-Fallback" in result.final
+    assert "SYNTHESE-AUFTRAG" in result.final
+    assert result.needs_external_synthesis is True
+
+
 def test_total_failure_raises():
     provider = FakeProvider(responses={}, fail=set(VPS_SEATS) | {"glm-5.2"})
     with pytest.raises(Exception):

@@ -140,12 +140,15 @@ class MultiAIConfig:
                 f"worker_models ({n})"
             )
         if self.aggregator_kind == "inprocess" and self.strategy == "moa":
-            raise ValueError(
+            import warnings
+            warnings.warn(
                 f"Profil {self.profile!r} aggregiert in-process "
-                f"({self.aggregator_model}) und kann die Strategie 'moa' nicht "
-                f"selbst ausfuehren. Nutze --strategy brief (Standard) — der "
-                f"Synthese-Auftrag geht dann an Claude Code."
+                f"({self.aggregator_model}) und kann 'moa' nicht selbst "
+                f"ausfuehren. Falle auf 'brief' zurueck — der Synthese-Auftrag "
+                f"geht an Claude Code.",
+                stacklevel=2,
             )
+            self.strategy = "brief"
         if self.max_parallel < 1:
             raise ValueError("max_parallel muss >= 1 sein")
         if self.quorum_k < 1:

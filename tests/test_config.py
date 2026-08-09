@@ -73,10 +73,15 @@ def test_from_dict_rejects_unknown_key():
         MultiAIConfig.from_dict({"gibt_es_nicht": 1})
 
 
-def test_inprocess_aggregator_cannot_run_moa():
-    """Opus 5 laeuft nicht ueber den Provider — moa muss hier fehlschlagen."""
-    with pytest.raises(ValueError, match="in-process"):
-        MultiAIConfig.from_profile("claude", strategy="moa")
+def test_inprocess_aggregator_falls_back_to_brief_on_moa():
+    """Opus 5 laeuft nicht ueber den Provider — moa faellt still auf brief zurueck."""
+    import warnings
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        c = MultiAIConfig.from_profile("claude", strategy="moa")
+    assert c.strategy == "brief"
+    assert len(w) == 1
+    assert "in-process" in str(w[0].message)
 
 
 def test_inprocess_aggregator_runs_moa_after_lead_override():

@@ -12,6 +12,8 @@ Aggregator**:
 
 from __future__ import annotations
 
+import json
+
 from .aggregate import AGGREGATOR_RULES, format_drafts_block
 
 RULE = "=" * 72
@@ -32,6 +34,33 @@ UNTRUSTED_WARNING = (
 
 def _ok(drafts: list) -> list:
     return [d for d in drafts if d.ok]
+
+
+def format_drafts_json(drafts: list) -> str:
+    """Serialisiert die Beitraege als JSON-Array mit echtem Escaping.
+
+    Im ``brief``-Modus wandern die Ausgaben von sieben fremden Modellen in eine
+    Umgebung mit Werkzeugzugriff (Claude Code / Opus 5). Roher Fließtext liesse
+    sich durch Einbetten von ``</untrusted_council_data>`` oder Markdown-Tags
+    aus dem Umschlag ausbrechen. JSON-Serialisierung mit ``ensure_ascii=False``
+    entzieht jedem Beitrag diese Moeglichkeit — ``json.dumps`` escapet
+    strukturkritische Zeichen zuverlaessig.
+    """
+    items = []
+    for i, d in enumerate(_ok(drafts), start=1):
+        items.append({
+            "seat": i,
+            "role": d.role or "",
+            "model": d.model,
+            "content": _escape_xml_tags(d.content or ""),
+        })
+    return json.dumps(items, ensure_ascii=False, indent=2)
+
+
+def _escape_xml_tags(s: str) -> str:
+    """Ersetzt < und > durch JSON-Unicode-Escapes, damit keine HTML/XML-Tags
+    im Output erscheinen.  json.dumps allein escapet diese Zeichen nicht."""
+    return s.replace("<", "\\u003c").replace(">", "\\u003e")
 
 
 def render_header(config, *, n_ok: int | None = None) -> str:
@@ -127,7 +156,7 @@ def render_brief(question: str, drafts: list, config) -> str:
         UNTRUSTED_WARNING,
         "",
         UNTRUSTED_OPEN,
-        format_drafts_block(drafts),
+        format_drafts_json(drafts),
         UNTRUSTED_CLOSE,
     ]
     if failures:

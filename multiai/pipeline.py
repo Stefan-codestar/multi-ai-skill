@@ -135,13 +135,24 @@ def run_multiai(
         used_quorum = n_ok < config.quorum_k
     elif strategy == "moa":
         if n_ok >= 1:
-            final = synthesize(
-                provider, question, drafts,
-                aggregator_model=aggregator_model,
-                max_tokens=config.aggregator_max_tokens,
-                temperature=config.aggregator_temperature,
-                extra_body=config.aggregator_extra_body,
-            )
+            try:
+                final = synthesize(
+                    provider, question, drafts,
+                    aggregator_model=aggregator_model,
+                    max_tokens=config.aggregator_max_tokens,
+                    temperature=config.aggregator_temperature,
+                    extra_body=config.aggregator_extra_body,
+                )
+            except Exception as agg_err:
+                # Aggregator-Crash (HTTP-Fehler, Timeout, 429) -> Fallback
+                # auf brief: der Brief geht an Claude Code, die Beitraege
+                # gehen nicht verloren.
+                final = render_brief(question, drafts, config)
+                final = (
+                    f"[Aggregator-Fallback: {agg_err} — "
+                    f"Synthese an Claude Code delegiert]\n\n{final}"
+                )
+                strategy = "brief"
             used_quorum = n_ok < config.quorum_k
         else:
             # Kein Sitz erreichbar -> der Aggregator antwortet allein.
@@ -206,17 +217,27 @@ def run_multiai_stream(
         yield final
     elif strategy == "moa":
         if n_ok >= 1:
-            parts: list[str] = []
-            for chunk in synthesize_stream(
-                provider, question, drafts,
-                aggregator_model=aggregator_model,
-                max_tokens=config.aggregator_max_tokens,
-                temperature=config.aggregator_temperature,
-                extra_body=config.aggregator_extra_body,
-            ):
-                parts.append(chunk)
-                yield chunk
-            final = "".join(parts)
+            try:
+                parts: list[str] = []
+                for chunk in synthesize_stream(
+                    provider, question, drafts,
+                    aggregator_model=aggregator_model,
+                    max_tokens=config.aggregator_max_tokens,
+                    temperature=config.aggregator_temperature,
+                    extra_body=config.aggregator_extra_body,
+                ):
+                    parts.append(chunk)
+                    yield chunk
+                final = "".join(parts)
+            except Exception as agg_err:
+                # Aggregator-Crash -> Fallback auf brief
+                final = render_brief(question, drafts, config)
+                final = (
+                    f"[Aggregator-Fallback: {agg_err} — "
+                    f"Synthese an Claude Code delegiert]\n\n{final}"
+                )
+                yield final
+                strategy = "brief"
         else:
             final = provider.complete(
                 aggregator_model,

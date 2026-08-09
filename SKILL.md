@@ -90,19 +90,28 @@ cd ~/.hermes/skills/multi-ai-skill && python3 -m multiai "<FRAGE>" --profile vps
 
 ## Wann AUTOMATISCH verwenden (ohne expliziten Befehl)
 
-Setze den Rat eigenstaendig ein, wenn **mindestens eines** zutrifft **und** die
-Frage nicht unter "Wann NICHT" faellt:
+Setze den Rat eigenstaendig ein, wenn **mindestens ZWEI der fuenf Marker**
+zutreffen **und** die Frage nicht unter "Wann NICHT" faellt.
+Ein einzelner Marker reicht nicht — er Fuehrt zu haeufigen, unnoetig langsamen
+Einsaetzen bei Fragen, die ein Modell genauso gut beantwortet.
 
-- **Komplexe technische Fragen** — Architektur-Entscheidungen, Trade-offs,
-  "welcher Ansatz ist besser fuer X", Multi-Step-Reasoning
-- **Mehrdeutige oder umstrittene Themen** — bei denen verschiedene Modelle
-  verschiedene Perspektiven bieten (China/US/Europa)
-- **Wichtige Entscheidungen** — mit dauerhaften Konsequenzen (Infrastruktur,
-  Sicherheit, Kosten, Design-Architektur)
-- **Fragen mit mehreren gueltigen Antworten** — wo die Synthese echten Mehrwert
-  bringt
-- **Tiefe Analyse** — wo umfassendes Reasoning mehrerer Modelle qualitativ
-  besser ist als eine Einzelantwort
+Die fuenf Marker (zaehle mit):
+
+1. **Komplexe technische Frage** — Architektur-Entscheidung, Trade-off,
+   "welcher Ansatz ist besser fuer X", Multi-Step-Reasoning
+2. **Mehrdeutig oder umstritten** — verschiedene Modelle wuerden verschiedene
+   Perspektiven bieten (China/US/Europa, unterschiedliche Schulen)
+3. **Wichtige Entscheidung** — dauerhafte Konsequenzen (Infrastruktur,
+   Sicherheit, Kosten, Design-Architektur)
+4. **Mehrere gueltige Antworten** — die Synthese bringt echten Mehrwert,
+   nicht nur eine Bestaetigung
+5. **Tiefe Analyse** — umfassendes Reasoning mehrerer Modelle ist qualitativ
+   besser als eine Einzelantwort
+
+Beispiel: "Welche Datenbank fuer ein neues Projekt?" trifft Marker 1 und 3
+(zwei) -> Rat. "Was ist ein Monoid?" trifft keinen -> kein Rat. "Ist Rust
+besser als Go?" trifft Marker 1 allein -> kein Rat (eher eine Vergleichsanfrage,
+die ein Modell beantworten kann).
 
 ## Wann explizit verwenden (User-Befehl)
 

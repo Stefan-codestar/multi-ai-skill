@@ -83,11 +83,15 @@ def test_lead_override_switches_aggregator_to_http(stub_run):
     assert cfg.aggregator_kind == "http"
 
 
-def test_moa_on_inprocess_profile_is_rejected(capsys):
-    assert main(["Frage?", "--profile", "claude", "--strategy", "moa"]) == 2
-    err = capsys.readouterr().err
-    assert "Konfigurationsfehler" in err
-    assert "--strategy brief" in err
+def test_moa_on_inprocess_profile_falls_back_to_brief(stub_run, capsys):
+    """moa auf dem claude-Profil faellt still auf brief zurueck (mit Warnung)."""
+    import warnings
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        assert main(["Frage?", "--profile", "claude", "--strategy", "moa"]) == 0
+    cfg = stub_run["config"]
+    assert cfg.strategy == "brief"  # still auf brief gefallen
+    assert any("in-process" in str(x.message) for x in w)
 
 
 def test_flags_reach_the_config(stub_run):

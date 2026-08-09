@@ -114,7 +114,7 @@ def main(argv: list[str] | None = None) -> int:
             print(profile.description)
             print(diversity_report(profile))
             print()
-            print(render_roster(MultiAIConfig.from_profile(profile)))
+            print(render_roster(MultiAIConfig.from_profile(profile), profile))
         return 0
 
     if args.self_eval:

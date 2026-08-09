@@ -32,6 +32,16 @@ class Result:
         """True, wenn ``final`` noch von Claude Code synthetisiert werden muss."""
         return self.strategy in EXTERNAL_SYNTHESIS_STRATEGIES
 
+    @property
+    def degraded(self) -> bool:
+        """True, wenn der Rat das Quorum NICHT erreicht hat.
+
+        Sprechender Name fuer ``used_quorum``, das aus dem Vorgaenger-Skill
+        stammt und genau umgekehrt klingt, als es bedeutet. ``used_quorum``
+        bleibt fuer bestehende Aufrufer erhalten.
+        """
+        return self.used_quorum
+
 
 def _build_record(question: str, drafts: list[Draft], final: str, strategy: str,
                   aggregator_model: str, n_ok: int, total_s: float,

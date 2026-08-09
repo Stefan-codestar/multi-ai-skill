@@ -14,7 +14,7 @@ Verfahren steckt: der Skeptiker *muss* Gegenargumente suchen, der Pragmatiker
 verwertbaren Dissens statt sieben Varianten derselben Antwort.
 
 Preis: Latenz. Ollama Cloud Pro haelt drei Modelle gleichzeitig, also laeuft
-der Rat in drei Wellen (~3-8 Min statt ~1-3 Min). Deshalb bleibt der Skill fuer
+der Rat in drei Wellen (~4-10 Min statt ~1-3 Min). Deshalb bleibt der Skill fuer
 triviale Fragen ausdruecklich gesperrt.
 
 ---
@@ -103,8 +103,9 @@ Querdenkers.
 ## 5. Quorum
 
 `quorum_k` steht auf **4** — die Mehrheit von sieben. Unterhalb davon
-synthetisiert der Aggregator trotzdem, aber `used_quorum=True` markiert den
-Lauf als degradiert. Frueher lag die Schwelle bei 2 von 3.
+synthetisiert der Aggregator trotzdem, aber `Result.degraded` markiert den
+Lauf (Feld `used_quorum`, dessen Name genau umgekehrt klingt, bleibt fuer
+bestehende Aufrufer erhalten). Frueher lag die Schwelle bei 2 von 3.
 
 Wichtig: das Quorum blockiert nichts. Es gibt in jedem Fall eine Antwort — die
 Markierung dient der Transparenz, nicht der Ablaufsteuerung.
@@ -173,3 +174,31 @@ statt aus dem Kopf dessen, der den Skill gebaut hat.
 Die Bewertungsachsen stehen in `selfeval.py:EVAL_AXES` und sind bewusst
 unangenehm formuliert ("erzeugen die Rollen-Prompts nur Scheindiversitaet?") —
 eine Selbstbewertung, die nur Lob produziert, ist wertlos.
+
+Ergebnis des ersten Laufs: `selbstbewertung-2026-08-09.md`. Sechs Befunde
+wurden daraus umgesetzt, darunter der Umschlag fuer fremde Modell-Ausgaben
+(Abschnitt 10) und das Ende des String-Slicings an den Synthese-Regeln.
+
+---
+
+## 10. Beitraege sind Daten, keine Anweisungen
+
+Im `brief`-Modus liest Claude Code die Ausgaben von sieben fremden Modellen —
+in einer Umgebung mit Werkzeugzugriff. Ein manipuliertes Modell koennte dort
+Anweisungen platzieren, die als Auftrag gelesen werden.
+
+Drei Lagen dagegen:
+
+1. `AGGREGATOR_RULES` Regel 6 — gilt auf beiden Synthesewegen, auch beim
+   HTTP-Aggregator auf dem VPS.
+2. `render_brief()` setzt die Beitraege in einen
+   `<untrusted_council_data>`-Block mit vorangestellter Warnung.
+3. SKILL.md wiederholt es fuer den Fall, dass ein Agent nur die Doku liest.
+
+Der VPS-Pfad ist weniger exponiert, weil `glm-5.2` keine Werkzeuge bedient —
+die Regel gilt dort trotzdem, damit beide Wege identisch begruendet sind.
+
+Nicht abgedeckt: ein Beitrag, der den Nutzer direkt taeuscht, statt den
+Aggregator zu steuern. Dagegen hilft nur Regel 1 (jeden Beitrag kritisch
+pruefen) und der Umstand, dass sieben Modelle selten dieselbe Falschaussage
+teilen.

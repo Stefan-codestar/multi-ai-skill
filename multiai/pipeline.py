@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .aggregate import concat_drafts, synthesize, synthesize_stream
-from .config import MultiAIConfig
+from .config import DEFAULT_LOG_DIR, MultiAIConfig
 from .council import EFFORT_ORDER, ROLE_EFFORT, render_brief, render_seats
 from .fanout import Draft, fan_out
 from .logio import log_run
@@ -17,7 +17,7 @@ from .providers import RoutingProvider
 EXTERNAL_SYNTHESIS_STRATEGIES = frozenset({"brief", "seats"})
 
 # Default-State-Pfad fuer den modelcheck.
-MODELCHECK_STATE_PATH = os.path.expanduser("~/.hermes/.multiai_check.json")
+MODELCHECK_STATE_PATH = os.path.join(DEFAULT_LOG_DIR, "modelcheck.json")
 
 
 @dataclass
@@ -147,19 +147,6 @@ def _convene(provider, question: str, config: MultiAIConfig) -> list[Draft]:
             result[orig_idx] = _dc_replace(draft, seat=orig_idx + 1)
             if draft.ok:
                 n_ok += 1
-
-        # Quorum-Early-Exit: genug Sitze ok -> verbleibende Wellen abbrechen.
-        if n_ok >= config.quorum_k and wave_end < n:
-            for remaining_idx in indexed[wave_end:]:
-                result[remaining_idx] = Draft(
-                    model=config.worker_models[remaining_idx],
-                    content="", ok=False,
-                    error="Quorum erreicht — Sitz nicht mehr aufgerufen",
-                    latency_s=0.0,
-                    role=config.role_for(remaining_idx),
-                    seat=remaining_idx + 1,
-                )
-            break
 
     return result  # type: ignore[return-value]
 

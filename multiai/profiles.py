@@ -50,7 +50,6 @@ LENS_SKEPTIC = (
     "Was koennte schiefgehen? Was wird uebersehen? Wo ist die naheliegende Antwort "
     "falsch? Sei konkret statt allgemein warnend. Wenn die naheliegende Antwort "
     "tatsaechlich richtig ist, sage das ebenfalls klar. "
-    "Du greifst die Logik ANDERER Beitraege an (falls vorhanden), nicht die Frage selbst. "
     "Du suchst Gegenbeispiele und Randfaelle, nicht nach Bestaetigung."
 )
 
@@ -59,8 +58,7 @@ LENS_STRATEGIST = (
     "Welche Option altert am besten? Welche Trade-offs entstehen, welche Tueren "
     "werden zugemacht? Vergleiche echte Alternativen gegeneinander statt nur eine "
     "zu beschreiben. Denke in Konsequenzen, nicht in Features. "
-    "Du ignorierst Beitraege des Pragmatikers, die weniger als 1 Satz haben — "
-    "sie sind zu duenn fuer Strategie. Du denkst in Langfristfolgen und Trade-offs."
+    "Du denkst in Langfristfolgen und Trade-offs."
 )
 
 LENS_PRAGMATIST = (
@@ -68,8 +66,7 @@ LENS_PRAGMATIST = (
     "das Problem wirklich loest. Bewerte Aufwand gegen Nutzen, benenne, was man "
     "weglassen kann (YAGNI), und was 80 Prozent des Werts mit 20 Prozent des "
     "Aufwands bringt. Misstraue Ueberkonstruktion. "
-    "Du ignorierst Beitraege des Strategen, die mehr als 3 Saetze haben — sie sind "
-    "zu komplex um pragmatisch zu sein. Du nimmst nur die einfachste tragfaehige Loesung."
+    "Du nimmst nur die einfachste tragfaehige Loesung."
 )
 
 LENS_EXPLAINER = (
@@ -107,10 +104,10 @@ MODEL_ORIGINS: dict[str, tuple[str, str]] = {
     "deepseek-v4-pro":       ("DeepSeek", "CN"),
     "qwen3.5:397b":          ("Alibaba", "CN"),
     "nemotron-3-ultra":      ("NVIDIA", "US"),
-    "gemini-2.5-pro":        ("Google", "US"),
+    "minimax-m3":            ("MiniMax", "CN"),
     "gpt-oss:120b":          ("OpenAI", "US"),
     "mistral-large-3:675b":  ("Mistral", "FR"),
-    "command-r-plus":        ("Cohere", "CA"),
+    "kimi-k3":               ("Moonshot", "CN"),
     "glm-5.2":               ("Z.ai", "CN"),
     "claude-opus-5":         ("Anthropic", "US"),
 }
@@ -148,7 +145,7 @@ def _base_seats(strategist_model: str) -> list[Seat]:
               "Kompakt und direkt, neigt zu einfachen Loesungen"),
         _seat("Erklaerer",   LENS_EXPLAINER,   "mistral-large-3:675b",
               "Fluessige Sprache, europaeische Perspektive"),
-        _seat("Querdenker",  LENS_MAVERICK,    "command-r-plus",
+        _seat("Querdenker",  LENS_MAVERICK,    "kimi-k3",
               "Unkonventionelle Ansaetze, ungewoehnliche Rahmungen"),
     ]
 
@@ -193,7 +190,7 @@ OLLAMA_BASE_URL = "https://ollama.com/v1"
 
 PROFILE_VPS = Profile(
     name="vps",
-    seats=_base_seats(strategist_model="gemini-2.5-pro"),
+    seats=_base_seats(strategist_model="minimax-m3"),
     aggregator_model="glm-5.2",
     aggregator_kind="http",
     aggregator_lab="Z.ai",

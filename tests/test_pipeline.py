@@ -212,7 +212,7 @@ def test_concat_returns_all_contributions_unsynthesised():
     assert result.strategy == "concat"
     assert provider.synth_calls == []
     assert "Analytiker (deepseek-v4-pro)" in result.final
-    assert "Querdenker (command-r-plus)" in result.final
+    assert "Querdenker (kimi-k3)" in result.final
 
 
 # ── brief: Claude Code ist der Aggregator ──────────────────────────────────

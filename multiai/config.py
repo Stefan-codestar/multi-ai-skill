@@ -19,7 +19,7 @@ DEFAULT_WORKER_MAX_TOKENS      = 16384
 DEFAULT_WORKER_TEMPERATURE     = 0.7
 DEFAULT_AGGREGATOR_MAX_TOKENS  = 16384
 DEFAULT_AGGREGATOR_TEMPERATURE = 0.3
-DEFAULT_WORKER_EXTRA_BODY      = {"reasoning_effort": "xhigh"}
+DEFAULT_WORKER_EXTRA_BODY      = {}
 DEFAULT_LOG_DIR                = os.path.expanduser("~/.multiai")
 
 # Rueckwaertskompatible Aliase — der Rat des Standardprofils.
@@ -64,7 +64,7 @@ class MultiAIConfig:
     strategy: str                 = _DEFAULT_PROFILE.default_strategy
     use_lenses: bool              = True
     aggregator_extra_body: dict[str, Any] = field(
-        default_factory=lambda: {"reasoning_effort": "xhigh"}
+        default_factory=lambda: {}
     )
     worker_extra_body: dict[str, Any] = field(
         default_factory=lambda: dict(DEFAULT_WORKER_EXTRA_BODY)

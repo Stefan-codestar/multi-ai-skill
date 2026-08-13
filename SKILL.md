@@ -36,10 +36,10 @@ Skeptiker und eines als Pragmatiker gefragt wird.
 | 1 | Analytiker | zerlegt, prueft Logik | `deepseek-v4-pro` | `deepseek-v4-pro` |
 | 2 | Ingenieur | konkrete Umsetzung | `qwen3.5:397b` | `qwen3.5:397b` |
 | 3 | Skeptiker | Red-Team, Gegenbeispiele | `nemotron-3-ultra` | `nemotron-3-ultra` |
-| 4 | Stratege | Langfristfolgen, Trade-offs | `glm-5.2` | `gemini-2.5-pro` |
+| 4 | Stratege | Langfristfolgen, Trade-offs | `glm-5.2` | `minimax-m3` |
 | 5 | Pragmatiker | einfachste tragfaehige Loesung | `gpt-oss:120b` | `gpt-oss:120b` |
 | 6 | Erklaerer | Klarheit, Beispiel, Analogie | `mistral-large-3:675b` | `mistral-large-3:675b` |
-| 7 | Querdenker | Reframing, unkonventionell | `command-r-plus` | `command-r-plus` |
+| 7 | Querdenker | Reframing, unkonventionell | `kimi-k3` | `kimi-k3` |
 | — | **Aggregator** | Synthese | **Opus 5 (in-process)** | **`glm-5.2` (HTTP)** |
 
 Sieben Labs, drei Laender pro Rat. Der Aggregator sitzt in **keinem** Profil im

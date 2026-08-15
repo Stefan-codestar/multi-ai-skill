@@ -59,7 +59,7 @@ def test_failures_empty_when_all_present():
 
 def test_failures_name_seat_and_error():
     out = render_failures(_drafts(n_ok=6))
-    assert "Querdenker (kimi-k3)" in out
+    assert "Querdenker (kimi-k2.6)" in out
     assert "Timeout" in out
 
 

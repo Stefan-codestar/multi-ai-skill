@@ -165,12 +165,18 @@ def main(argv: list[str] | None = None) -> int:
                 "used_quorum": result.used_quorum,
                 "n_ok": result.n_ok,
                 "council_size": result.council_size,
+                "modelcheck_warning": result.modelcheck_warning,
                 "drafts": [_draft_to_dict(d) for d in result.drafts],
             },
             ensure_ascii=False,
             indent=2,
         ))
         return 0
+
+    # Auf stderr, nicht stdout: im brief-Modus ist stdout der Synthese-Auftrag,
+    # und eine Betriebsmeldung darin wuerde als Ratsmaterial gelesen.
+    if result.modelcheck_warning:
+        print(result.modelcheck_warning, file=sys.stderr)
 
     print(result.final)
     if args.show_drafts and result.drafts:

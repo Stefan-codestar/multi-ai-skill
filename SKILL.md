@@ -33,13 +33,13 @@ Skeptiker und eines als Pragmatiker gefragt wird.
 
 | # | Sitz | Aufgabe | Modell (Claude) | Modell (VPS) |
 |---|------|---------|-----------------|--------------|
-| 1 | Analytiker | zerlegt, prueft Logik | `deepseek-v4-pro` | `deepseek-v4-pro` |
+| 1 | Analytiker | zerlegt, prueft Logik | `deepseek-v4-pro:preview` | `deepseek-v4-pro:preview` |
 | 2 | Ingenieur | konkrete Umsetzung | `qwen3.5:397b` | `qwen3.5:397b` |
 | 3 | Skeptiker | Red-Team, Gegenbeispiele | `nemotron-3-ultra` | `nemotron-3-ultra` |
 | 4 | Stratege | Langfristfolgen, Trade-offs | `glm-5.2` | `minimax-m3` |
 | 5 | Pragmatiker | einfachste tragfaehige Loesung | `gpt-oss:120b` | `gpt-oss:120b` |
 | 6 | Erklaerer | Klarheit, Beispiel, Analogie | `mistral-large-3:675b` | `mistral-large-3:675b` |
-| 7 | Querdenker | Reframing, unkonventionell | `kimi-k3` | `kimi-k3` |
+| 7 | Querdenker | Reframing, unkonventionell | `kimi-k2.6` | `kimi-k2.6` |
 | — | **Aggregator** | Synthese | **Opus 5 (in-process)** | **`glm-5.2` (HTTP)** |
 
 Sieben Labs, drei Laender pro Rat. Der Aggregator sitzt in **keinem** Profil im
@@ -148,7 +148,7 @@ Den Nutzer bei automatischem Einsatz KURZ vorwarnen:
 Schneller geht es mit weniger Sitzen oder ohne xhigh-Reasoning:
 
 ```bash
-python3 -m multiai "<FRAGE>" --models deepseek-v4-pro,nemotron-3-ultra,mistral-large-3:675b
+python3 -m multiai "<FRAGE>" --models deepseek-v4-pro:preview,nemotron-3-ultra,mistral-large-3:675b
 ```
 
 Auf einem Plan mit mehr gleichzeitigen Modellen (Ollama Cloud Max):

@@ -101,13 +101,13 @@ class Seat:
 # Diversitaets-Report und die Doku genutzt.
 
 MODEL_ORIGINS: dict[str, tuple[str, str]] = {
-    "deepseek-v4-pro":       ("DeepSeek", "CN"),
+    "deepseek-v4-pro:preview": ("DeepSeek", "CN"),
     "qwen3.5:397b":          ("Alibaba", "CN"),
     "nemotron-3-ultra":      ("NVIDIA", "US"),
     "minimax-m3":            ("MiniMax", "CN"),
     "gpt-oss:120b":          ("OpenAI", "US"),
     "mistral-large-3:675b":  ("Mistral", "FR"),
-    "kimi-k3":               ("Moonshot", "CN"),
+    "kimi-k2.6":             ("Moonshot", "CN"),
     "glm-5.2":               ("Z.ai", "CN"),
     "claude-opus-5":         ("Anthropic", "US"),
 }
@@ -133,7 +133,7 @@ def _base_seats(strategist_model: str) -> list[Seat]:
     ``glm-5.2`` als Sitz frei wird.
     """
     return [
-        _seat("Analytiker",  LENS_ANALYST,     "deepseek-v4-pro",
+        _seat("Analytiker",  LENS_ANALYST,     "deepseek-v4-pro:preview",
               "Deep Reasoning, starke Ketten-Logik"),
         _seat("Ingenieur",   LENS_ENGINEER,    "qwen3.5:397b",
               "Code, Mathe, praezise Instruktionsbefolgung"),
@@ -145,7 +145,7 @@ def _base_seats(strategist_model: str) -> list[Seat]:
               "Kompakt und direkt, neigt zu einfachen Loesungen"),
         _seat("Erklaerer",   LENS_EXPLAINER,   "mistral-large-3:675b",
               "Fluessige Sprache, europaeische Perspektive"),
-        _seat("Querdenker",  LENS_MAVERICK,    "kimi-k3",
+        _seat("Querdenker",  LENS_MAVERICK,    "kimi-k2.6",
               "Unkonventionelle Ansaetze, ungewoehnliche Rahmungen"),
     ]
 

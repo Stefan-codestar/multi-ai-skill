@@ -90,7 +90,7 @@ class Seat:
 
     role: str          # "Analytiker"
     lens: str          # System-Prompt der Rolle
-    model: str         # "deepseek-v4-pro"
+    model: str         # "deepseek-v4-pro:preview"
     lab: str           # "DeepSeek"
     country: str       # "CN"
     strength: str      # kurze Begruendung fuer die Zuordnung
@@ -102,14 +102,14 @@ class Seat:
 
 MODEL_ORIGINS: dict[str, tuple[str, str]] = {
     "deepseek-v4-pro:preview": ("DeepSeek", "CN"),
-    "qwen3.5:397b":            ("Alibaba", "CN"),
-    "nemotron-3-ultra":        ("NVIDIA", "US"),
-    "minimax-m3":              ("MiniMax", "CN"),
-    "gpt-oss:120b":            ("OpenAI", "US"),
-    "mistral-large-3:675b":    ("Mistral", "FR"),
-    "kimi-k2.6":               ("Moonshot", "CN"),
-    "glm-5.2":                 ("Z.ai", "CN"),
-    "claude-opus-5":           ("Anthropic", "US"),
+    "qwen3.5:397b":          ("Alibaba", "CN"),
+    "nemotron-3-ultra":      ("NVIDIA", "US"),
+    "minimax-m3":            ("MiniMax", "CN"),
+    "gpt-oss:120b":          ("OpenAI", "US"),
+    "mistral-large-3:675b":  ("Mistral", "FR"),
+    "kimi-k2.6":             ("Moonshot", "CN"),
+    "glm-5.2":               ("Z.ai", "CN"),
+    "claude-opus-5":         ("Anthropic", "US"),
 }
 
 

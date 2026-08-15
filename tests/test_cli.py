@@ -22,6 +22,7 @@ def stub_run(monkeypatch):
         profile = "claude"
         council_size = 7
         needs_external_synthesis = True
+        modelcheck_warning = ""
 
     def fake(question, config=None, provider=None):
         seen["question"] = question

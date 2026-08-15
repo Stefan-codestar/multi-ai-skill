@@ -49,6 +49,9 @@ def test_runtime_defaults():
     assert c.aggregator_max_tokens == 16384
     assert c.aggregator_temperature == 0.3
     assert c.worker_extra_body == {}
+    # Leer, seit jede Rolle ihren eigenen Effort aus ROLE_EFFORT bekommt
+    # (Analytiker/Skeptiker xhigh … Erklaerer low). worker_extra_body ist nur
+    # noch der Rueckfall fuer Rollen ohne Eintrag.
     assert c.use_lenses is True
     assert c.enable_logging is True
     assert isinstance(c.log_dir, str) and c.log_dir

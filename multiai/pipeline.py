@@ -10,6 +10,7 @@ from .config import DEFAULT_LOG_DIR, MultiAIConfig
 from .council import EFFORT_ORDER, ROLE_EFFORT, render_brief, render_seats
 from .fanout import Draft, fan_out
 from .logio import log_run
+from .modelresolve import load_catalog, resolve, resolve_all
 from .providers import RoutingProvider
 
 # Strategien, deren Ausgabe ein AUFTRAG an Claude Code ist und keine fertige
@@ -18,6 +19,36 @@ EXTERNAL_SYNTHESIS_STRATEGIES = frozenset({"brief", "seats"})
 
 # Default-State-Pfad fuer den modelcheck.
 MODELCHECK_STATE_PATH = os.path.join(DEFAULT_LOG_DIR, "modelcheck.json")
+
+
+def _apply_catalog_resolution(config: MultiAIConfig) -> list[str]:
+    """Biegt konfigurierte Modellnamen auf real existierende Tags um.
+
+    Mutiert ``config`` in-place und gibt Hinweiszeilen fuer den Nutzer zurueck.
+    Wird nur fuer netzgebundene Strategien aufgerufen; ``seats`` braucht keinen
+    Katalog. Bei nicht erreichbarem Katalog passiert nichts.
+    """
+    catalog = load_catalog()
+    if not catalog:
+        return []
+
+    notes: list[str] = []
+
+    config.worker_models, changes = resolve_all(config.worker_models, catalog)
+    for before, after in changes:
+        notes.append(f"Sitz-Modell '{before}' nicht im Katalog — weiche auf '{after}' aus.")
+
+    # Der Aggregator zaehlt mit: im vps-Profil ist er ein HTTP-Modell und faellt
+    # sonst genauso still aus wie ein Sitz.
+    resolved_aggregator = resolve(config.aggregator_model, catalog)
+    if resolved_aggregator != config.aggregator_model:
+        notes.append(
+            f"Aggregator '{config.aggregator_model}' nicht im Katalog — "
+            f"weiche auf '{resolved_aggregator}' aus."
+        )
+        config.aggregator_model = resolved_aggregator
+
+    return notes
 
 
 @dataclass
@@ -192,8 +223,12 @@ def run_multiai(
     if provider is None:
         provider = RoutingProvider(ollama_base_url=config.base_url)
 
+    resolution_notes = _apply_catalog_resolution(config)
+
     # Vorschlag 8: modelcheck vor jedem Lauf (informell, nicht blockierend)
     modelcheck_warning = _run_modelcheck_warning()
+    if resolution_notes:
+        modelcheck_warning = "\n".join([*resolution_notes, modelcheck_warning or ""]).strip()
 
     t0 = time.time()
     drafts = _convene(provider, question, config)
@@ -287,6 +322,8 @@ def run_multiai_stream(
 
     if provider is None:
         provider = RoutingProvider(ollama_base_url=config.base_url)
+
+    _apply_catalog_resolution(config)
 
     t0 = time.time()
     drafts = _convene(provider, question, config)

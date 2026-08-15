@@ -61,7 +61,7 @@ def test_run_check_first_run(tmp_path, monkeypatch):
     state_path = str(tmp_path / "state.json")
     today = datetime.date(2026, 7, 14)
 
-    watched = ["deepseek-v4-pro", "nemotron-3-ultra", "mistral-large-3:675b"]
+    watched = ["deepseek-v4-pro:preview", "nemotron-3-ultra", "mistral-large-3:675b"]
     monkeypatch.setattr("multiai.modelcheck.WATCHED_MODELS", watched)
     monkeypatch.setattr("multiai.modelcheck.fetch_ollama_models", lambda: set(watched))
 

@@ -48,7 +48,7 @@ def test_runtime_defaults():
     assert c.worker_temperature == 0.7
     assert c.aggregator_max_tokens == 16384
     assert c.aggregator_temperature == 0.3
-    assert c.worker_extra_body == {"reasoning_effort": "xhigh"}
+    assert c.worker_extra_body == {}
     assert c.use_lenses is True
     assert c.enable_logging is True
     assert isinstance(c.log_dir, str) and c.log_dir

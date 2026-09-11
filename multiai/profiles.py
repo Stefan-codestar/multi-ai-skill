@@ -101,7 +101,7 @@ class Seat:
 # Diversitaets-Report und die Doku genutzt.
 
 MODEL_ORIGINS: dict[str, tuple[str, str]] = {
-    "deepseek-v4-pro:preview": ("DeepSeek", "CN"),
+    "deepseek-v4-pro:0813":   ("DeepSeek", "CN"),
     "qwen3.5:397b":          ("Alibaba", "CN"),
     "nemotron-3-ultra":      ("NVIDIA", "US"),
     "minimax-m3":            ("MiniMax", "CN"),
@@ -133,7 +133,7 @@ def _base_seats(strategist_model: str) -> list[Seat]:
     ``glm-5.2`` als Sitz frei wird.
     """
     return [
-        _seat("Analytiker",  LENS_ANALYST,     "deepseek-v4-pro:preview",
+        _seat("Analytiker",  LENS_ANALYST,     "deepseek-v4-pro:0813",
               "Deep Reasoning, starke Ketten-Logik"),
         _seat("Ingenieur",   LENS_ENGINEER,    "qwen3.5:397b",
               "Code, Mathe, praezise Instruktionsbefolgung"),

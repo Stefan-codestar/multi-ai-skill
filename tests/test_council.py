@@ -121,7 +121,7 @@ def test_seats_warns_that_it_is_one_model():
 def test_seats_names_the_model_each_seat_would_use():
     out = render_seats("Frage?", _cfg("vps"))
     assert "minimax-m3" in out
-    assert "deepseek-v4-pro" in out
+    assert "deepseek-v4.1-flash" in out
 
 
 def test_seats_without_lenses_marks_neutral():

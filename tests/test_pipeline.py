@@ -211,7 +211,7 @@ def test_concat_returns_all_contributions_unsynthesised():
     result = run_multiai("Frage?", config=_cfg(strategy="concat"), provider=provider)
     assert result.strategy == "concat"
     assert provider.synth_calls == []
-    assert "Analytiker (deepseek-v4-pro:0813)" in result.final
+    assert "Analytiker (deepseek-v4.1-flash)" in result.final
     assert "Querdenker (kimi-k2.6)" in result.final
 
 

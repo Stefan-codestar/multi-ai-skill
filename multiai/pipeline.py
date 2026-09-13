@@ -81,7 +81,7 @@ class Result:
 
 def _build_record(question: str, drafts: list[Draft], final: str, strategy: str,
                   aggregator_model: str, n_ok: int, total_s: float,
-                  profile: str = "") -> dict:
+                  profile: str = "", advocate: bool = False) -> dict:
     return {
         "ts": time.time(),
         "iso": time.strftime("%Y-%m-%dT%H:%M:%S"),
@@ -91,6 +91,7 @@ def _build_record(question: str, drafts: list[Draft], final: str, strategy: str,
         "aggregator": aggregator_model,
         "total_s": total_s,
         "n_ok": n_ok,
+        "advocate": advocate,
         "drafts": [
             {
                 "model": d.model,
@@ -129,11 +130,34 @@ def _convene(provider, question: str, config: MultiAIConfig) -> list[Draft]:
     Quorum-Early-Exit (Vorschlag 7): Nach jeder Welle wird geprueft, ob genug
     Sitze erfolgreich geantwortet haben (>= ``quorum_k``). Wenn ja, werden
     verbleibende Wellen nicht mehr gestartet — die langsamsten Sitze fallen weg.
+
+    Mission 14 (Rat-Lauf 15, M4) — rotierender Adversarial Advocate:
+    Bei ``config.advocate`` erhaelt EIN zufaelliger Sitz einen
+    Gegenargument-Append auf seinen Lens-Prompt. Die anderen Sitze erfahren
+    nichts davon. Auswahl deterministisch pro Lauf (Random aus time.time()-Seed
+    via random.Random(ts)), damit Auswertungen reproduzierbar bleiben.
     """
     from dataclasses import replace as _dc_replace
+    import random as _random
+    import time as _time
 
     n = config.council_size
     extra_bodies = [config.extra_body_for(i) for i in range(n)]
+
+    # Advocate-Sitz bestimmen (nur wenn Rat tagt, nicht bei leerem Rat).
+    advocate_seat: int | None = None
+    if config.advocate and n > 0:
+        ts_seed = int(_time.time())
+        advocate_seat = _random.Random(ts_seed).randrange(n)
+
+    ADVOCATE_APPEND = (
+        "\n\n---\n\n"
+        "ADVOCATUS DIABOLI (nur fuer DICH, diese Sitzung):\n"
+        "Nenne ZUSAETZLICH zu deinem Beitrag das staerkste Gegenargument "
+        "zu deiner eigenen Position. Wenn kein Gegenargument existiert, "
+        "schreibe explizit: KEIN GEGENARGUMENT.\n"
+        "Markiere den Abschnitt mit 'GEGENARGUMENT:' am Anfang.\n"
+    )
 
     # Sortiere Sitze nach Reasoning-Effort (low -> xhigh) fuer Wellen-Sortierung.
     # Behalte die Original-Indizes fuer Lenses und Roles.
@@ -148,6 +172,16 @@ def _convene(provider, question: str, config: MultiAIConfig) -> list[Draft]:
     sorted_extra_bodies = [extra_bodies[i] for i in indexed]
     sorted_lenses = [config.lens_for(i) for i in indexed]
     sorted_roles = [config.role_for(i) for i in indexed]
+
+    # Mission 14 (M4): Advocate-Append auf den Lens-Prompt des gewaehlten
+    # Sitzes. Lens None (Lenses aus) -> Append wird selbst der System-Prompt.
+    if advocate_seat is not None:
+        for pos, orig_idx in enumerate(indexed):
+            if orig_idx == advocate_seat:
+                base_lens = sorted_lenses[pos]
+                sorted_lenses[pos] = (
+                    (base_lens + ADVOCATE_APPEND) if base_lens else ADVOCATE_APPEND.strip()
+                )
 
     result: list[Draft | None] = [None] * n  # type: ignore
     n_ok = 0
@@ -288,7 +322,7 @@ def run_multiai(
 
     total_s = time.time() - t0
     _log(config, (question, drafts, final, strategy, aggregator_model, n_ok,
-                  total_s, config.profile))
+                  total_s, config.profile, bool(config.advocate)))
 
     return Result(
         final=final,
@@ -381,4 +415,4 @@ def run_multiai_stream(
 
     total_s = time.time() - t0
     _log(config, (question, drafts, final, strategy, aggregator_model, n_ok,
-                  total_s, config.profile))
+                  total_s, config.profile, bool(config.advocate)))

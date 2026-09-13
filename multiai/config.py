@@ -62,7 +62,10 @@ class MultiAIConfig:
     aggregator_max_tokens: int    = DEFAULT_AGGREGATOR_MAX_TOKENS
     aggregator_temperature: float = DEFAULT_AGGREGATOR_TEMPERATURE
     strategy: str                 = _DEFAULT_PROFILE.default_strategy
-    use_lenses: bool              = True
+    use_lenses: bool = True
+    # Mission 14 (Rat-Lauf 15, M4): rotierender Adversarial Advocate.
+    # True = pro Lauf ein zufaelliger Sitz mit Gegenargument-Prompt-Append.
+    advocate: bool = False
     aggregator_extra_body: dict[str, Any] = field(
         default_factory=lambda: {}
     )

@@ -54,7 +54,12 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--stream", action="store_true",
                         help="Synthese live streamen (nur Profile mit HTTP-Aggregator).")
     parser.add_argument("--self-eval", action="store_true",
-                        help="Der Rat bewertet diesen Skill selbst.")
+                        help="Den Rat diesen Skill selbst bewerten lassen.")
+    parser.add_argument("--advocate", action="store_true",
+                        help="Mission 14 (Rat-Lauf 15, M4): rotierender Adversarial "
+                             "Advocate — ein zufaelliger Sitz muss das staerkste "
+                             "Gegenargument zu seiner eigenen Position liefern. "
+                             "Nicht Teil der Diversitaets-Baseline.")
     parser.add_argument("--roster", action="store_true",
                         help="Sitzbesetzung anzeigen und beenden.")
     return parser
@@ -81,6 +86,8 @@ def _overrides_from_args(args: argparse.Namespace) -> dict[str, Any]:
         overrides["timeout_s"] = args.timeout
     if args.no_lenses:
         overrides["use_lenses"] = False
+    if getattr(args, "advocate", False):
+        overrides["advocate"] = True
     if args.no_log:
         overrides["enable_logging"] = False
     if args.log_dir:

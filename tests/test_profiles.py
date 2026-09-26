@@ -29,10 +29,26 @@ def test_every_profile_has_seven_distinct_seats():
 
 
 def test_every_seat_comes_from_a_distinct_lab():
-    """Diversitaet ist der Zweck des Rats — zwei Sitze aus demselben Lab waeren Groupthink."""
+    """Diversitaet ist der Zweck des Rats — zwei Sitze aus demselben Lab waeren Groupthink.
+
+    Rat-39 (26.09.): Ausnahme dokumentiert — qwen3.5:397b delistet (HTTP 410),
+    Ingenieur-Sitz ging an nemotron-3-super (NVIDIA). Skeptiker sitzt auf
+    nemotron-3-ultra: gleiche Modellfamilie, aber Rollen-Trennung (Skeptiker:
+    Kritik/Red-Team, Temp 0.6 vs. Ingenieur: Konstruktion/Code, Temp 0.1).
+    Rat-Auflagen: 30-Tage-Review durch Querdenker + Korrelations-Monitoring
+    (bei rho > 0,8 ueber 20 Runden -> Review-Auftrag). Wenn eine dritte
+    Lab-Doppelung entsteht: hartes Veto, keine Ausnahme mehr.
+    """
     for profile in PROFILES.values():
         labs = [s.lab for s in profile.seats]
-        assert len(set(labs)) == COUNCIL_SIZE, f"{profile.name}: {labs}"
+        dupes = {lab for lab in labs if labs.count(lab) > 1}
+        allowed = {"NVIDIA"}  # Rat-39: dokumentierte Ausnahme (s. Docstring)
+        illegal = dupes - allowed
+        assert not illegal, f"{profile.name}: illegale Lab-Doppelung {illegal}"
+        if dupes & allowed:
+            # Dokumentierte Ausnahme: genau EINE Doppelung erlaubt
+            assert len(dupes) == 1 and len(labs) - len(set(labs)) == 1, (
+                f"{profile.name}: mehr als eine Doppelung {dupes}")
 
 
 def test_council_spans_multiple_countries():

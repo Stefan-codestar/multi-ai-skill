@@ -103,8 +103,9 @@ class Seat:
 MODEL_ORIGINS: dict[str, tuple[str, str]] = {
     "deepseek-v4-pro:0813":   ("DeepSeek", "CN"),
     "deepseek-v4.1-flash":    ("DeepSeek", "CN"),
-    "qwen3.5:397b":          ("Alibaba", "CN"),
+    "qwen3.5:397b":          ("Alibaba", "CN"),  # 25.09. delistet (HTTP 410) — s. Rat-39
     "nemotron-3-ultra":      ("NVIDIA", "US"),
+    "nemotron-3-super":      ("NVIDIA", "US"),  # Rat-39 26.09.: neuer Ingenieur-Sitz
     "minimax-m3":            ("MiniMax", "CN"),
     "gpt-oss:120b":          ("OpenAI", "US"),
     "mistral-large-3:675b":  ("Mistral", "FR"),
@@ -136,8 +137,8 @@ def _base_seats(strategist_model: str) -> list[Seat]:
     return [
         _seat("Analytiker",  LENS_ANALYST,     "deepseek-v4.1-flash",
               "Deep Reasoning, starke Ketten-Logik"),
-        _seat("Ingenieur",   LENS_ENGINEER,    "qwen3.5:397b",
-              "Code, Mathe, praezise Instruktionsbefolgung"),
+        _seat("Ingenieur",   LENS_ENGINEER,    "nemotron-3-super",
+              "Code, Mathe, praezise Instruktionsbefolgung (Rat-39 26.09.: qwen3.5:397b delistet)"),
         _seat("Skeptiker",   LENS_SKEPTIC,     "nemotron-3-ultra",
               "US-Perspektive, breites Faktenwissen fuer Gegenbeispiele"),
         _seat("Stratege",    LENS_STRATEGIST,  strategist_model,
